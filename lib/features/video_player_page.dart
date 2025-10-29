@@ -1,29 +1,36 @@
-import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:chewie/chewie.dart';
 import 'package:video_player/video_player.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../utils/web_iframe.dart'; // <= conditional import
+
 class VideoPlayerPage extends StatefulWidget {
   final String url;
   final String? title;
-  const VideoPlayerPage({super.key, required this.url, this.title});
+  const VideoPlayerPage({
+    super.key,
+    required this.url,
+    this.title,
+  });
 
   @override
   State<VideoPlayerPage> createState() => _VideoPlayerPageState();
 }
 
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  VideoPlayerController? _video;
-  ChewieController? _chewie;
-  WebViewController? _web;
+  VideoPlayerController? _videoCtrl;
+  ChewieController? _chewieCtrl;
+  WebViewController? _webCtrl;
+  String? _iframeViewType;
 
   bool get _looksLikeDirectMedia {
     final u = widget.url.toLowerCase();
-    return u.contains('.m3u8') ||
-        u.endsWith('.mp4') ||
+    return u.endsWith('.mp4') ||
         u.contains('.mp4?') ||
+        u.endsWith('.m3u8') ||
         u.contains('playlist.m3u8') ||
         u.contains('manifest.m3u8');
   }
@@ -31,18 +38,25 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   @override
   void initState() {
     super.initState();
+
     if (_looksLikeDirectMedia) {
-      _initVideo();
+      _initDirectVideo();
     } else {
-      _initWebView();
+      if (kIsWeb) {
+        _iframeViewType = WebIframeFactory.register(widget.url);
+        setState(() {});
+      } else {
+        _initMobileWebView();
+      }
     }
   }
 
-  Future<void> _initVideo() async {
-    _video = VideoPlayerController.networkUrl(Uri.parse(widget.url));
-    await _video!.initialize();
-    _chewie = ChewieController(
-      videoPlayerController: _video!,
+  Future<void> _initDirectVideo() async {
+    final controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+    _videoCtrl = controller;
+    await controller.initialize();
+    _chewieCtrl = ChewieController(
+      videoPlayerController: controller,
       autoInitialize: true,
       autoPlay: true,
       looping: false,
@@ -53,19 +67,19 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
     if (mounted) setState(() {});
   }
 
-  void _initWebView() {
-    final controller = WebViewController()
+  void _initMobileWebView() {
+    final ctrl = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..enableZoom(true)
       ..loadRequest(Uri.parse(widget.url));
-    _web = controller;
+    _webCtrl = ctrl;
     setState(() {});
   }
 
   @override
   void dispose() {
-    _chewie?.dispose();
-    _video?.dispose();
+    _chewieCtrl?.dispose();
+    _videoCtrl?.dispose();
     super.dispose();
   }
 
@@ -80,7 +94,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         actions: [
           IconButton(
             tooltip: 'Buka di Browser',
-            onPressed: () => launchUrl(Uri.parse(widget.url), mode: LaunchMode.externalApplication),
+            onPressed: () async {
+              final uri = Uri.parse(widget.url);
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            },
             icon: const Icon(Icons.open_in_new),
           ),
         ],
@@ -88,29 +105,49 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       body: Padding(
         padding: const EdgeInsets.all(12),
         child: _looksLikeDirectMedia
-            ? _buildVideo()
-            : _buildWeb(),
+            ? _buildDirectVideo()
+            : _buildEmbed(),
       ),
     );
   }
 
-  Widget _buildVideo() {
-    if (_video == null || _chewie == null || !_video!.value.isInitialized) {
+  Widget _buildDirectVideo() {
+    if (_videoCtrl == null ||
+        _chewieCtrl == null ||
+        !_videoCtrl!.value.isInitialized) {
       return const Center(child: CircularProgressIndicator());
     }
+
+    final aspect = _videoCtrl!.value.aspectRatio == 0
+        ? 16 / 9
+        : _videoCtrl!.value.aspectRatio;
+
     return AspectRatio(
-      aspectRatio: _video!.value.aspectRatio == 0 ? 16 / 9 : _video!.value.aspectRatio,
-      child: Chewie(controller: _chewie!),
+      aspectRatio: aspect,
+      child: Chewie(controller: _chewieCtrl!),
     );
   }
 
-  Widget _buildWeb() {
-    if (_web == null) {
-      return const Center(child: CircularProgressIndicator());
+  Widget _buildEmbed() {
+    if (kIsWeb) {
+      if (_iframeViewType == null) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          color: Colors.black,
+          child: HtmlElementView(viewType: _iframeViewType!),
+        ),
+      );
+    } else {
+      if (_webCtrl == null) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: WebViewWidget(controller: _webCtrl!),
+      );
     }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: WebViewWidget(controller: _web!),
-    );
   }
 }
