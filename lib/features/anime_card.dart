@@ -6,6 +6,7 @@ import '../models/anime_models.dart' show AnimeDisplay;
 // Ambil HANYA AnimeDetailPage dari file detail (hindari bentrok AnimeDisplay)
 import './anime_detail_page.dart' show AnimeDetailPage;
 import '../widgets/common.dart';
+import '../utils/image_proxy_utils.dart';
 
 class AnimeCard extends StatelessWidget {
   final AnimeDisplay display;
@@ -27,10 +28,8 @@ class AnimeCard extends StatelessWidget {
           }
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => AnimeDetailPage(
-                slug: slug,
-                titleFallback: display.title,
-              ),
+              builder: (_) =>
+                  AnimeDetailPage(slug: slug, titleFallback: display.title),
             ),
           );
         },
@@ -40,7 +39,7 @@ class AnimeCard extends StatelessWidget {
             Expanded(
               child: (display.imageUrl != null && display.imageUrl!.isNotEmpty)
                   ? CachedNetworkImage(
-                      imageUrl: display.imageUrl!,
+                      imageUrl: getProxyImageUrl(display.imageUrl!),
                       fit: BoxFit.cover,
                       placeholder: (c, _) => const ShimmerBox(),
                       errorWidget: (c, _, __) => const ImageFallback(),
@@ -51,7 +50,9 @@ class AnimeCard extends StatelessWidget {
               padding: const EdgeInsets.all(8.0),
               child: Text(
                 display.title ?? 'No Title',
-                style: textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                style: textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -62,4 +63,3 @@ class AnimeCard extends StatelessWidget {
     );
   }
 }
-

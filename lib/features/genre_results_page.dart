@@ -6,6 +6,7 @@ import '../widgets/common.dart';
 import '../models/anime_models.dart';
 import 'anime_detail_page.dart';
 import '../utils/slug_utils.dart';
+import '../utils/image_proxy_utils.dart';
 
 class GenreAnimePage extends StatefulWidget {
   final String genreName;
@@ -78,8 +79,10 @@ class _GenreAnimePageState extends State<GenreAnimePage> {
         _lastPage = _tryInt(p['last_visible_page']);
         _hasNext = p['has_next_page'] == true;
         _hasPrev = p['has_previous_page'] == true;
-        _nextPage = _tryInt(p['next_page']) ?? (_hasNext ? _currentPage + 1 : null);
-        _prevPage = _tryInt(p['previous_page']) ?? (_hasPrev ? _currentPage - 1 : null);
+        _nextPage =
+            _tryInt(p['next_page']) ?? (_hasNext ? _currentPage + 1 : null);
+        _prevPage =
+            _tryInt(p['previous_page']) ?? (_hasPrev ? _currentPage - 1 : null);
       } else {
         _currentPage = page;
         _hasNext = false;
@@ -119,10 +122,7 @@ class _GenreAnimePageState extends State<GenreAnimePage> {
 
     return Scaffold(
       backgroundColor: cs.background,
-      appBar: AppBar(
-        title: Text(widget.genreName),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text(widget.genreName), centerTitle: true),
       body: Column(
         children: [
           // main content
@@ -130,107 +130,99 @@ class _GenreAnimePageState extends State<GenreAnimePage> {
             child: _loading && _animes.isEmpty
                 ? const CenteredLoading()
                 : _error != null
-                    ? Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: ErrorView(
-                          message:
-                              'Gagal memuat anime genre "${widget.genreName}" (slug "${widget.genreSlug}"):\n$_error',
-                          onRetry: () => _fetchByGenre(page: _currentPage),
-                        ),
-                      )
-                    : _animes.isEmpty
-                        ? const Center(
-                            child: Text('Belum ada anime untuk genre ini.'),
-                          )
-                        : Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: GridView.builder(
-                              itemCount: _animes.length,
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                childAspectRatio: 0.6,
-                                mainAxisSpacing: 8,
-                                crossAxisSpacing: 8,
-                              ),
-                              itemBuilder: (context, index) {
-                                final item = _animes[index];
-                                final normalizedSlug = item.slug == null
-                                    ? null
-                                    : normalizeAnimeSlug(item.slug!);
-
-                                final ratingText =
-                                    (item.rating ?? '').toString().trim();
-
-                                return InkWell(
-                                  onTap: () {
-                                    if (normalizedSlug == null ||
-                                        normalizedSlug.isEmpty) return;
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => AnimeDetailPage(
-                                          slug: normalizedSlug,
-                                          titleFallback: item.title,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
-                                    children: [
-                                      Expanded(
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          child: (item.imageUrl != null &&
-                                                  item.imageUrl!.isNotEmpty)
-                                              ? CachedNetworkImage(
-                                                  imageUrl: item.imageUrl!,
-                                                  fit: BoxFit.cover,
-                                                  placeholder: (c, _) =>
-                                                      const ShimmerBox(),
-                                                  errorWidget:
-                                                      (c, _, __) =>
-                                                          const ImageFallback(),
-                                                )
-                                              : const ImageFallback(),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        item.title ?? '',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.copyWith(
-                                                fontWeight: FontWeight.w600),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      if (ratingText.isNotEmpty)
-                                        Text(
-                                          '⭐ $ratingText',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
+                ? Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: ErrorView(
+                      message:
+                          'Gagal memuat anime genre "${widget.genreName}" (slug "${widget.genreSlug}"):\n$_error',
+                      onRetry: () => _fetchByGenre(page: _currentPage),
+                    ),
+                  )
+                : _animes.isEmpty
+                ? const Center(child: Text('Belum ada anime untuk genre ini.'))
+                : Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: GridView.builder(
+                      itemCount: _animes.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            childAspectRatio: 0.6,
+                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 8,
                           ),
+                      itemBuilder: (context, index) {
+                        final item = _animes[index];
+                        final normalizedSlug = item.slug == null
+                            ? null
+                            : normalizeAnimeSlug(item.slug!);
+
+                        final ratingText = (item.rating ?? '')
+                            .toString()
+                            .trim();
+
+                        return InkWell(
+                          onTap: () {
+                            if (normalizedSlug == null ||
+                                normalizedSlug.isEmpty)
+                              return;
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => AnimeDetailPage(
+                                  slug: normalizedSlug,
+                                  titleFallback: item.title,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child:
+                                      (item.imageUrl != null &&
+                                          item.imageUrl!.isNotEmpty)
+                                      ? CachedNetworkImage(
+                                          imageUrl: coverProxy(item.imageUrl!),
+                                          fit: BoxFit.cover,
+                                          placeholder: (c, _) =>
+                                              const ShimmerBox(),
+                                          errorWidget: (c, _, __) =>
+                                              const ImageFallback(),
+                                        )
+                                      : const ImageFallback(),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                item.title ?? '',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              if (ratingText.isNotEmpty)
+                                Text(
+                                  '⭐ $ratingText',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
           ),
 
           // pagination footer
           Container(
             width: double.infinity,
             color: cs.surface.withOpacity(0.6),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -253,12 +245,11 @@ class _GenreAnimePageState extends State<GenreAnimePage> {
                         _hasNext
                             ? 'Next → ${_nextPage ?? _currentPage + 1}'
                             : _hasPrev
-                                ? '← Prev ${_prevPage ?? (_currentPage - 1)}'
-                                : '',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: cs.primary),
+                            ? '← Prev ${_prevPage ?? (_currentPage - 1)}'
+                            : '',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: cs.primary),
                       ),
                   ],
                 ),

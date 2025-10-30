@@ -30,7 +30,9 @@ class _EpisodePageState extends State<EpisodePage> {
   // helper pilih stream playable (bukan download)
   DirectStream? _pickMainStream(EpisodeDetailDisplay display) {
     final playable = display.directStreams
-        .where((e) => !e.isDownload && e.url != null && e.url!.trim().isNotEmpty)
+        .where(
+          (e) => !e.isDownload && e.url != null && e.url!.trim().isNotEmpty,
+        )
         .toList();
     if (playable.isNotEmpty) return playable.first;
     return null;
@@ -41,8 +43,27 @@ class _EpisodePageState extends State<EpisodePage> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..loadRequest(Uri.parse(url));
     setState(() {
-        _webCtrl = ctrl;
+      _webCtrl = ctrl;
     });
+  }
+
+  // Check apakah URL adalah embed HTML (iframe, player dll) atau direct video
+  bool _isEmbedUrl(String url) {
+    if (url.isEmpty) return false;
+    url = url.toLowerCase();
+
+    // Jika URL adalah direct video file, jangan di WebView
+    if (url.endsWith('.mp4') ||
+        url.endsWith('.mkv') ||
+        url.endsWith('.webm') ||
+        url.endsWith('.avi') ||
+        url.endsWith('.mov')) {
+      return false; // Direct video = tidak bisa di WebView
+    }
+
+    // Semua URL lain dianggap embed content (player, iframe, etc)
+    // atau minimal coba load di WebView dulu
+    return true;
   }
 
   // ganti episode (next/prev)
@@ -86,29 +107,41 @@ class _EpisodePageState extends State<EpisodePage> {
           }
 
           final raw = snap.data!;
-          final display =
-              EpisodeDetailDisplay.fromMap(raw, widget.titleFallback);
+          final display = EpisodeDetailDisplay.fromMap(
+            raw,
+            widget.titleFallback,
+          );
 
           // ambil stream utama sekarang
           final mainStream = _pickMainStream(display);
 
-          // kalau kita belum punya webCtrl tapi sudah tahu URL stream,
-          // schedule init setelah frame ini selesai, bukan langsung saat build.
-          if (_webCtrl == null &&
-              mainStream != null &&
-              mainStream.url != null &&
-              mainStream.url!.trim().isNotEmpty) {
+          // Check apakah URL bisa di-load di WebView
+          final streamUrl = mainStream?.url?.trim();
+          final canLoadInWebView =
+              streamUrl != null &&
+              streamUrl.isNotEmpty &&
+              _isEmbedUrl(streamUrl);
+
+          // DEBUG
+          debugPrint('=== EPISODE PAGE DEBUG ===');
+          debugPrint('Stream URL: $streamUrl');
+          debugPrint('Can load in WebView: $canLoadInWebView');
+          debugPrint('_webCtrl: $_webCtrl');
+
+          // kalau bisa di-webview dan belum punya controller, init sekarang
+          if (canLoadInWebView && _webCtrl == null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
-              // double check lagi kalau _webCtrl masih null
               if (_webCtrl == null) {
-                _initWebViewFromUrl(mainStream.url!.trim());
+                debugPrint('Initializing WebView with URL: $streamUrl');
+                _initWebViewFromUrl(streamUrl);
               }
             });
           }
 
-          final downloads =
-              display.directStreams.where((e) => e.isDownload).toList();
+          final downloads = display.directStreams
+              .where((e) => e.isDownload)
+              .toList();
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
@@ -134,17 +167,46 @@ class _EpisodePageState extends State<EpisodePage> {
               ),
               const SizedBox(height: 16),
 
+              // ===== FALLBACK UNTUK WEB (jika tidak bisa load stream URL) =====
+              if (_webCtrl == null && streamUrl != null)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '📺 Stream URL:',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 8),
+                        SelectableText(
+                          streamUrl,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Colors.blue,
+                                decoration: TextDecoration.underline,
+                              ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Jika video tidak muncul, salin URL di atas dan buka di browser atau video player favorit Anda.',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
               // ===== JUDUL / INFO EPISODE =====
-              if (display.title != null &&
-                  display.title!.trim().isNotEmpty)
+              if (display.title != null && display.title!.trim().isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     display.title!,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
 
@@ -198,10 +260,7 @@ class _EpisodePageState extends State<EpisodePage> {
                     if (display.nextSlug != null)
                       FilledButton(
                         onPressed: () {
-                          _loadNewEpisode(
-                            display.nextSlug!,
-                            newTitle: 'Next',
-                          );
+                          _loadNewEpisode(display.nextSlug!, newTitle: 'Next');
                         },
                         child: const Text('Next'),
                       ),
@@ -211,9 +270,7 @@ class _EpisodePageState extends State<EpisodePage> {
               if (downloads.isEmpty && mainStream == null)
                 const Padding(
                   padding: EdgeInsets.only(top: 24),
-                  child: ListTile(
-                    title: Text('Tidak ada sumber ditemukan.'),
-                  ),
+                  child: ListTile(title: Text('Tidak ada sumber ditemukan.')),
                 ),
             ],
           );
