@@ -10,11 +10,7 @@ import '../utils/web_iframe.dart'; // <= conditional import
 class VideoPlayerPage extends StatefulWidget {
   final String url;
   final String? title;
-  const VideoPlayerPage({
-    super.key,
-    required this.url,
-    this.title,
-  });
+  const VideoPlayerPage({super.key, required this.url, this.title});
 
   @override
   State<VideoPlayerPage> createState() => _VideoPlayerPageState();
@@ -28,11 +24,14 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   bool get _looksLikeDirectMedia {
     final u = widget.url.toLowerCase();
-    return u.endsWith('.mp4') ||
+    final isDirect =
+        u.endsWith('.mp4') ||
         u.contains('.mp4?') ||
         u.endsWith('.m3u8') ||
         u.contains('playlist.m3u8') ||
         u.contains('manifest.m3u8');
+    debugPrint('🎬 VideoPlayerPage: URL=$u, isDirect=$isDirect');
+    return isDirect;
   }
 
   @override
@@ -43,8 +42,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       _initDirectVideo();
     } else {
       if (kIsWeb) {
-        _iframeViewType = WebIframeFactory.register(widget.url);
-        setState(() {});
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _iframeViewType = WebIframeFactory.register(widget.url);
+          setState(() {});
+        });
       } else {
         _initMobileWebView();
       }
@@ -104,9 +106,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(12),
-        child: _looksLikeDirectMedia
-            ? _buildDirectVideo()
-            : _buildEmbed(),
+        child: _looksLikeDirectMedia ? _buildDirectVideo() : _buildEmbed(),
       ),
     );
   }
@@ -131,8 +131,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   Widget _buildEmbed() {
     if (kIsWeb) {
       if (_iframeViewType == null) {
+        debugPrint('🎬 _iframeViewType still null, loading...');
         return const Center(child: CircularProgressIndicator());
       }
+      debugPrint(
+        '🎬 _buildEmbed: showing iframe with viewType=$_iframeViewType',
+      );
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Container(

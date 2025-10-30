@@ -6,6 +6,7 @@ import '../widgets/common.dart';
 import '../models/anime_models.dart';
 import 'anime_detail_page.dart';
 import '../utils/slug_utils.dart';
+import '../utils/image_proxy_utils.dart';
 
 import '../cubits/anime_search_cubit.dart';
 import '../cubits/anime_search_state.dart';
@@ -21,10 +22,7 @@ class AnimeSearchPage extends StatelessWidget {
       create: (_) => AnimeSearchCubit(),
       child: Scaffold(
         backgroundColor: cs.background,
-        appBar: AppBar(
-          title: const Text('Cari Anime'),
-          centerTitle: true,
-        ),
+        appBar: AppBar(title: const Text('Cari Anime'), centerTitle: true),
         body: const _SearchBody(),
       ),
     );
@@ -98,8 +96,9 @@ class _SearchBodyState extends State<_SearchBody> {
                 if (state.error != null) {
                   return ErrorView(
                     message: state.error!,
-                    onRetry: () =>
-                        context.read<AnimeSearchCubit>().search(_controller.text),
+                    onRetry: () => context.read<AnimeSearchCubit>().search(
+                      _controller.text,
+                    ),
                   );
                 }
 
@@ -110,9 +109,7 @@ class _SearchBodyState extends State<_SearchBody> {
 
                 // sudah cari tapi kosong
                 if (state.results.isEmpty) {
-                  return const Center(
-                    child: Text('Tidak ditemukan.'),
-                  );
+                  return const Center(child: Text('Tidak ditemukan.'));
                 }
 
                 // ada hasil
@@ -154,10 +151,8 @@ class _SearchResultTile extends StatelessWidget {
 
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (_) => AnimeDetailPage(
-              slug: fixedSlug,
-              titleFallback: item.title,
-            ),
+            builder: (_) =>
+                AnimeDetailPage(slug: fixedSlug, titleFallback: item.title),
           ),
         );
       },
@@ -170,7 +165,7 @@ class _SearchResultTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               child: (item.imageUrl != null && item.imageUrl!.isNotEmpty)
                   ? CachedNetworkImage(
-                      imageUrl: item.imageUrl!,
+                      imageUrl: coverProxy(item.imageUrl!),
                       fit: BoxFit.cover,
                       placeholder: (c, _) => const ShimmerBox(),
                       errorWidget: (c, _, __) => const ImageFallback(),
@@ -182,10 +177,9 @@ class _SearchResultTile extends StatelessWidget {
           // judul
           Text(
             item.title ?? '',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(fontWeight: FontWeight.w600),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),

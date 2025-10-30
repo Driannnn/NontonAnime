@@ -3,21 +3,30 @@ import 'dart:html' as html;
 import 'dart:ui' as ui;
 
 class WebIframeFactory {
+  static int _counter = 0;
+
   static String? register(String url) {
-    final viewType = 'iframe-${DateTime.now().microsecondsSinceEpoch}';
+    final viewType = 'iframe-${_counter++}';
 
     // register view factory ke Flutter Web
     // ignore: undefined_prefixed_name
     ui.platformViewRegistry.registerViewFactory(viewType, (int viewId) {
+      final container = html.DivElement()
+        ..style.width = '100%'
+        ..style.height = '100%'
+        ..style.border = 'none';
+
       final iframe = html.IFrameElement()
         ..src = url
-        ..style.border = '0'
+        ..style.border = 'none'
+        ..style.width = '100%'
+        ..style.height = '100%'
         ..allow =
-            'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture;'
-        ..allowFullscreen = true
-        ..width = '100%'
-        ..height = '100%';
-      return iframe;
+            'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share'
+        ..allowFullscreen = true;
+
+      container.append(iframe);
+      return container;
     });
 
     return viewType;

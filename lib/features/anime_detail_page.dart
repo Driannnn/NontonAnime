@@ -6,6 +6,7 @@ import '../models/anime_models.dart';
 import '../widgets/common.dart';
 import 'episode_page.dart';
 import '../utils/slug_utils.dart';
+import '../utils/image_proxy_utils.dart';
 
 class AnimeDetailPage extends StatefulWidget {
   final String slug;
@@ -19,15 +20,14 @@ class AnimeDetailPage extends StatefulWidget {
 class _AnimeDetailPageState extends State<AnimeDetailPage> {
   late Future<Map<String, dynamic>> _future;
 
- late String _normalizedSlug;
+  late String _normalizedSlug;
 
-@override
-void initState() {
-  super.initState();
-  _normalizedSlug = normalizeAnimeSlug(widget.slug);
-  _future = fetchAnimeDetail(_normalizedSlug);
-}
-
+  @override
+  void initState() {
+    super.initState();
+    _normalizedSlug = normalizeAnimeSlug(widget.slug);
+    _future = fetchAnimeDetail(_normalizedSlug);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +45,8 @@ void initState() {
           if (snap.hasError) {
             return ErrorView(
               message: snap.error.toString(),
-              onRetry: () => setState(() => _future = fetchAnimeDetail(_normalizedSlug)),
+              onRetry: () =>
+                  setState(() => _future = fetchAnimeDetail(_normalizedSlug)),
             );
           }
 
@@ -65,7 +66,7 @@ void initState() {
                       height: 170,
                       child: display.imageUrl != null
                           ? CachedNetworkImage(
-                              imageUrl: display.imageUrl!,
+                              imageUrl: getProxyImageUrl(display.imageUrl!),
                               fit: BoxFit.cover,
                               placeholder: (c, _) => const ShimmerBox(),
                               errorWidget: (c, _, __) => const ImageFallback(),
@@ -87,11 +88,17 @@ void initState() {
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            if (display.type != null) pastelPill(context, display.type!),
-                            if (display.status != null) pastelPill(context, display.status!),
-                            if (display.rating != null) pastelPill(context, '⭐ ${display.rating}'),
+                            if (display.type != null)
+                              pastelPill(context, display.type!),
+                            if (display.status != null)
+                              pastelPill(context, display.status!),
+                            if (display.rating != null)
+                              pastelPill(context, '⭐ ${display.rating}'),
                             if (display.episodesCount != null)
-                              pastelPill(context, '${display.episodesCount} eps'),
+                              pastelPill(
+                                context,
+                                '${display.episodesCount} eps',
+                              ),
                           ],
                         ),
                         const SizedBox(height: 10),
@@ -137,8 +144,7 @@ void initState() {
               // ✅ EPISODES di bawah
               Text('Episodes', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              if (display.episodes.isEmpty)
-                const Text('Belum ada episode.'),
+              if (display.episodes.isEmpty) const Text('Belum ada episode.'),
               ...display.episodes.map((e) => _EpisodeTile(item: e)).toList(),
             ],
           );

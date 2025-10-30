@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../widgets/common.dart';
 import 'anime_detail_page.dart';
 import '../utils/slug_utils.dart';
+import '../utils/image_proxy_utils.dart';
 
 class CompletedAnimePage extends StatefulWidget {
   const CompletedAnimePage({super.key});
@@ -47,7 +48,9 @@ class _CompletedAnimePageState extends State<CompletedAnimePage> {
       final body = res.data;
 
       if (body is! Map || body['data'] is! Map) {
-        throw Exception('Format /anime/complete-anime/$page tidak sesuai: $body');
+        throw Exception(
+          'Format /anime/complete-anime/$page tidak sesuai: $body',
+        );
       }
 
       final inner = Map<String, dynamic>.from(body['data']);
@@ -121,10 +124,7 @@ class _CompletedAnimePageState extends State<CompletedAnimePage> {
 
     return Scaffold(
       backgroundColor: cs.background,
-      appBar: AppBar(
-        title: const Text('Anime Tamat'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Anime Tamat'), centerTitle: true),
       body: Column(
         children: [
           // ===== GRID LIST =====
@@ -132,138 +132,117 @@ class _CompletedAnimePageState extends State<CompletedAnimePage> {
             child: _loading && _completedList.isEmpty
                 ? const CenteredLoading()
                 : _error != null
-                    ? Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: ErrorView(
-                          message:
-                              'Gagal memuat anime tamat (page $_currentPage):\n$_error',
-                          onRetry: () => _fetchCompleted(page: _currentPage),
-                        ),
-                      )
-                    : _completedList.isEmpty
-                        ? const Center(
-                            child: Text('Belum ada data anime tamat.'),
-                          )
-                        : Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: GridView.builder(
-                              itemCount: _completedList.length,
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                childAspectRatio: 0.6,
-                                mainAxisSpacing: 8,
-                                crossAxisSpacing: 8,
-                              ),
-                              itemBuilder: (context, index) {
-                                final item = _completedList[index];
-
-                                final normalizedSlug =
-                                    normalizeAnimeSlug(item.slug);
-
-                                final ratingText = item.rating.trim();
-                                final epText = item.episodeCount.trim();
-
-                                return InkWell(
-                                  onTap: () {
-                                    if (normalizedSlug.isEmpty) return;
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => AnimeDetailPage(
-                                          slug: normalizedSlug,
-                                          titleFallback: item.title,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.stretch,
-                                    children: [
-                                      // poster
-                                      Expanded(
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                          child: item.poster.isNotEmpty
-                                              ? CachedNetworkImage(
-                                                  imageUrl: item.poster,
-                                                  fit: BoxFit.cover,
-                                                  placeholder: (c, _) =>
-                                                      const ShimmerBox(),
-                                                  errorWidget:
-                                                      (c, _, __) =>
-                                                          const ImageFallback(),
-                                                )
-                                              : const ImageFallback(),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-
-                                      // judul
-                                      Text(
-                                        item.title,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodySmall
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-
-                                      // rating
-                                      if (ratingText.isNotEmpty)
-                                        Text(
-                                          '⭐ $ratingText',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-
-                                      // jumlah episode
-                                      if (epText.isNotEmpty)
-                                        Text(
-                                          '$epText eps',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-
-                                      // optional last release tanggal rilis terakhir
-                                      if (item.lastRelease.trim().isNotEmpty)
-                                        Text(
-                                          item.lastRelease,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .labelSmall
-                                              ?.copyWith(
-                                                color: cs.primary,
-                                              ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
+                ? Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: ErrorView(
+                      message:
+                          'Gagal memuat anime tamat (page $_currentPage):\n$_error',
+                      onRetry: () => _fetchCompleted(page: _currentPage),
+                    ),
+                  )
+                : _completedList.isEmpty
+                ? const Center(child: Text('Belum ada data anime tamat.'))
+                : Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: GridView.builder(
+                      itemCount: _completedList.length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            childAspectRatio: 0.6,
+                            mainAxisSpacing: 8,
+                            crossAxisSpacing: 8,
                           ),
+                      itemBuilder: (context, index) {
+                        final item = _completedList[index];
+
+                        final normalizedSlug = normalizeAnimeSlug(item.slug);
+
+                        final ratingText = item.rating.trim();
+                        final epText = item.episodeCount.trim();
+
+                        return InkWell(
+                          onTap: () {
+                            if (normalizedSlug.isEmpty) return;
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => AnimeDetailPage(
+                                  slug: normalizedSlug,
+                                  titleFallback: item.title,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // poster
+                              Expanded(
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: item.poster.isNotEmpty
+                                      ? CachedNetworkImage(
+                                          imageUrl: coverProxy(item.poster),
+                                          fit: BoxFit.cover,
+                                          placeholder: (c, _) =>
+                                              const ShimmerBox(),
+                                          errorWidget: (c, _, __) =>
+                                              const ImageFallback(),
+                                        )
+                                      : const ImageFallback(),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+
+                              // judul
+                              Text(
+                                item.title,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+
+                              // rating
+                              if (ratingText.isNotEmpty)
+                                Text(
+                                  '⭐ $ratingText',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+
+                              // jumlah episode
+                              if (epText.isNotEmpty)
+                                Text(
+                                  '$epText eps',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+
+                              // optional last release tanggal rilis terakhir
+                              if (item.lastRelease.trim().isNotEmpty)
+                                Text(
+                                  item.lastRelease,
+                                  style: Theme.of(context).textTheme.labelSmall
+                                      ?.copyWith(color: cs.primary),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
           ),
 
           // ===== PAGINATION FOOTER =====
           Container(
             width: double.infinity,
             color: cs.surface.withOpacity(0.6),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 12,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -289,12 +268,11 @@ class _CompletedAnimePageState extends State<CompletedAnimePage> {
                         _hasNext
                             ? 'Next → ${_nextPage ?? _currentPage + 1}'
                             : _hasPrev
-                                ? '← Prev ${_prevPage ?? (_currentPage - 1)}'
-                                : '',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: cs.primary),
+                            ? '← Prev ${_prevPage ?? (_currentPage - 1)}'
+                            : '',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: cs.primary),
                       ),
                   ],
                 ),
