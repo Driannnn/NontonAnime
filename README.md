@@ -1,6 +1,6 @@
 # Nonton Anime
 
-NontonAnime - Aplikasi Flutter untuk streaming anime online
+NontonAnime - Aplikasi Flutter untuk streaming anime
 
 ## 🎯 Features
 
