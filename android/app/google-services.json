@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "668062751811",
+    "project_id": "nontonanime-58c76",
+    "storage_bucket": "nontonanime-58c76.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:668062751811:android:8d54b6dc595d7ff98388f6",
+        "android_client_info": {
+          "package_name": "com.example.diotest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAD4fR52qo7RrVHPa5do60l9qF1W-vXXsQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

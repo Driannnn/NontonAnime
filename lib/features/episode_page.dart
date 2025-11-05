@@ -7,6 +7,7 @@ import '../core/api_client.dart';
 import '../models/anime_models.dart';
 import '../widgets/common.dart';
 import '../utils/web_iframe.dart';
+import '../widgets/comments_section.dart';
 
 class EpisodePage extends StatefulWidget {
   final String episodeSlug;
@@ -362,6 +363,16 @@ class _EpisodePageState extends State<EpisodePage> {
                   padding: EdgeInsets.only(top: 24),
                   child: ListTile(title: Text('Tidak ada sumber ditemukan.')),
                 ),
+
+              const SizedBox(height: 24),
+
+              // ===== COMMENTS SECTION =====
+              CommentsSection(
+                animeSlug: _currentEpisodeSlug ?? widget.episodeSlug,
+                animeTitleFallback: widget.titleFallback ?? 'Anime',
+              ),
+
+              const SizedBox(height: 32),
             ],
           );
         },

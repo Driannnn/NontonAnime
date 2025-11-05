@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection
+    match /users/{userId} {
+      // Siapa saja bisa read public user data
+      allow read: if true;
+      
+      // Hanya user sendiri yang bisa write profile mereka
+      allow write: if request.auth.uid == userId;
+    }
+
+    // Comments collection
+    match /comments/{commentId} {
+      // Siapa saja bisa read komentar (public)
+      allow read: if true;
+      
+      // Hanya user yang terautentikasi bisa create komentar
+      allow create: if request.auth.uid != null &&
+                       request.resource.data.userId == request.auth.uid;
+      
+      // Hanya pemilik komentar yang bisa update
+      allow update: if request.auth.uid == resource.data.userId;
+      
+      // Hanya pemilik komentar yang bisa delete
+      allow delete: if request.auth.uid == resource.data.userId;
+    }
+
+  }
+}

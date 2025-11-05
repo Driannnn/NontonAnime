@@ -5,6 +5,7 @@ import '../features/episode_page.dart';
 import '../features/anime_search_page.dart';
 import '../features/genre_results_page.dart';
 import '../features/completed_anime_page.dart';
+import '../features/user_page.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
@@ -65,6 +66,13 @@ final appRouter = GoRouter(
       path: '/completed',
       name: 'completed',
       builder: (context, state) => const CompletedAnimePage(),
+    ),
+
+    // User/Profile page
+    GoRoute(
+      path: '/profile',
+      name: 'profile',
+      builder: (context, state) => const UserPage(),
     ),
   ],
 );

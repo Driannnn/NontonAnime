@@ -37,6 +37,11 @@ class _HomePageState extends State<HomePage> {
         title: const Text('Anime — Home'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.person_outline),
+            tooltip: 'Profil',
+            onPressed: () => context.go('/profile'),
+          ),
+          IconButton(
             icon: const Icon(Icons.check_circle_outline),
             tooltip: 'Anime Tamat',
             onPressed: () => context.go('/completed'),
