@@ -1,4 +1,4 @@
-# diotest
+# Nonton Anime
 
 NontonAnime - Aplikasi Flutter untuk streaming anime online
 
