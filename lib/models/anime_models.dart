@@ -11,18 +11,24 @@ class AnimeDisplay {
   static String? _norm(dynamic v) {
     if (v == null) return null;
     if (v is Map) {
-      for (final k in ['url','link','image','src']) {
+      for (final k in ['url', 'link', 'image', 'src']) {
         final val = v[k];
-        if (val is String && val.trim().isNotEmpty) { v = val; break; }
+        if (val is String && val.trim().isNotEmpty) {
+          v = val;
+          break;
+        }
       }
       if (v is! String) return null;
     }
     if (v is! String) return null;
     var s = v.trim();
     if (s.isEmpty) return null;
-    if (s.startsWith('//')) s = 'https:$s';
-    else if (s.startsWith('/')) s = '$_kBase$s';
-    else if (!s.startsWith('http')) s = '$_kBase/$s';
+    if (s.startsWith('//'))
+      s = 'https:$s';
+    else if (s.startsWith('/'))
+      s = '$_kBase$s';
+    else if (!s.startsWith('http'))
+      s = '$_kBase/$s';
     return s;
   }
 
@@ -35,17 +41,26 @@ class AnimeDisplay {
       return null;
     }
 
-    final title = getStr(['title','name','animeTitle','judul']);
-    final slug  = getStr(['slug','id','animeId','path']);
-    final badge = getStr(['quality','type','episode','status']);
+    final title = getStr(['title', 'name', 'animeTitle', 'judul']);
+    final slug = getStr(['slug', 'id', 'animeId', 'path']);
+    final badge = getStr(['quality', 'type', 'episode', 'status']);
 
     final imgCandidates = <dynamic>[];
-    for (final key in ['poster','thumbnail','thumb','image','img','cover','posterUrl','poster_image']) {
+    for (final key in [
+      'poster',
+      'thumbnail',
+      'thumb',
+      'image',
+      'img',
+      'cover',
+      'posterUrl',
+      'poster_image',
+    ]) {
       if (m[key] != null) imgCandidates.add(m[key]);
     }
     if (m['images'] is Map) {
       final images = m['images'] as Map;
-      for (final fmt in ['jpg','webp','png']) {
+      for (final fmt in ['jpg', 'webp', 'png']) {
         final variant = images[fmt];
         if (variant is Map && variant['large_image_url'] is String) {
           imgCandidates.add(variant['large_image_url']);
@@ -56,10 +71,18 @@ class AnimeDisplay {
     String? image;
     for (final cand in imgCandidates) {
       final normed = _norm(cand);
-      if (normed != null) { image = normed; break; }
+      if (normed != null) {
+        image = normed;
+        break;
+      }
     }
 
-    return AnimeDisplay(title: title, imageUrl: image, slug: slug, badge: badge);
+    return AnimeDisplay(
+      title: title,
+      imageUrl: image,
+      slug: slug,
+      badge: badge,
+    );
   }
 
   get rating => null;
@@ -94,26 +117,32 @@ class AnimeDetailDisplay {
   static String? _normImg(dynamic v) {
     if (v == null) return null;
     if (v is Map) {
-      for (final k in ['url','link','image','src']) {
+      for (final k in ['url', 'link', 'image', 'src']) {
         final val = v[k];
-        if (val is String && val.trim().isNotEmpty) { v = val; break; }
+        if (val is String && val.trim().isNotEmpty) {
+          v = val;
+          break;
+        }
       }
       if (v is! String) return null;
     }
     if (v is! String) return null;
     var s = v.trim();
     if (s.isEmpty) return null;
-    if (s.startsWith('//')) s = 'https:$s';
-    else if (s.startsWith('/')) s = '$_kBase$s';
-    else if (!s.startsWith('http')) s = '$_kBase/$s';
+    if (s.startsWith('//'))
+      s = 'https:$s';
+    else if (s.startsWith('/'))
+      s = '$_kBase$s';
+    else if (!s.startsWith('http'))
+      s = '$_kBase/$s';
     return s;
   }
 
   /// Ambil episode dari berbagai struktur:
   /// - m['episodes'] / 'eps' / 'episode_list' / 'data'
   /// - atau scan semua list<Map> dan pilih yg punya kunci khas episode
-   /// Ambil episode dari berbagai struktur dan hindari salah baca genres.
-    /// Ambil episode dari berbagai struktur dan hindari salah baca genres.
+  /// Ambil episode dari berbagai struktur dan hindari salah baca genres.
+  /// Ambil episode dari berbagai struktur dan hindari salah baca genres.
   static List<EpisodeDisplay> _extractEpisodes(Map<String, dynamic> m) {
     List raw = [];
 
@@ -164,12 +193,19 @@ class AnimeDetailDisplay {
         if (v is List && v.isNotEmpty && v.first is Map) {
           final first = Map<String, dynamic>.from(v.first as Map);
 
-          final hasSlug = ['slug', 'episodeId', 'id', 'path', 'link']
-              .any((k) => first[k] is String && (first[k] as String).isNotEmpty);
+          final hasSlug = [
+            'slug',
+            'episodeId',
+            'id',
+            'path',
+            'link',
+          ].any((k) => first[k] is String && (first[k] as String).isNotEmpty);
 
           final hasEpHint = first.keys.any((kk) {
             final lk = kk.toString().toLowerCase();
-            return lk.contains('ep') || lk.contains('episode') || lk.contains('number');
+            return lk.contains('ep') ||
+                lk.contains('episode') ||
+                lk.contains('number');
           });
 
           final parentLooksEp = key.contains('ep');
@@ -191,14 +227,18 @@ class AnimeDetailDisplay {
     return out;
   }
 
-
-
-  factory AnimeDetailDisplay.fromMap(Map<String, dynamic> mm, String? fallbackTitle) {
+  factory AnimeDetailDisplay.fromMap(
+    Map<String, dynamic> mm,
+    String? fallbackTitle,
+  ) {
     // unwrap jika masih punya wadah 'data'/'result' dll (kadang model dipakai tanpa core unwrap)
     Map<String, dynamic> m = Map<String, dynamic>.from(mm);
-    for (final key in ['data','result','anime','detail']) {
+    for (final key in ['data', 'result', 'anime', 'detail']) {
       final v = m[key];
-      if (v is Map) { m = Map<String, dynamic>.from(v); break; }
+      if (v is Map) {
+        m = Map<String, dynamic>.from(v);
+        break;
+      }
     }
 
     String? getStr(List<String> keys) {
@@ -209,15 +249,25 @@ class AnimeDetailDisplay {
       return null;
     }
 
-    final title = getStr(['title','name','animeTitle','judul']) ?? fallbackTitle;
+    final title =
+        getStr(['title', 'name', 'animeTitle', 'judul']) ?? fallbackTitle;
 
     final imgCandidates = <dynamic>[];
-    for (final key in ['poster','image','img','cover','thumbnail','thumb','posterUrl','poster_image']) {
+    for (final key in [
+      'poster',
+      'image',
+      'img',
+      'cover',
+      'thumbnail',
+      'thumb',
+      'posterUrl',
+      'poster_image',
+    ]) {
       if (m[key] != null) imgCandidates.add(m[key]);
     }
     if (m['images'] is Map) {
       final images = m['images'] as Map;
-      for (final fmt in ['jpg','webp','png']) {
+      for (final fmt in ['jpg', 'webp', 'png']) {
         final variant = images[fmt];
         if (variant is Map && variant['large_image_url'] is String) {
           imgCandidates.add(variant['large_image_url']);
@@ -227,31 +277,37 @@ class AnimeDetailDisplay {
     String? imageUrl;
     for (final cand in imgCandidates) {
       final s = _normImg(cand);
-      if (s != null) { imageUrl = s; break; }
+      if (s != null) {
+        imageUrl = s;
+        break;
+      }
     }
 
-    final type = getStr(['type','tipe','format']);
+    final type = getStr(['type', 'tipe', 'format']);
 
     // jangan salah baca "status: success" dari top-level
     String? status;
-    final st = getStr(['status','state']);
-    if (st != null && !['success','ok','true'].contains(st.toLowerCase())) {
+    final st = getStr(['status', 'state']);
+    if (st != null && !['success', 'ok', 'true'].contains(st.toLowerCase())) {
       status = st;
     }
 
-    final rating = getStr(['rating','score','rate']);
-    final synopsis = getStr(['synopsis','sinopsis','description','desc']);
+    final rating = getStr(['rating', 'score', 'rate']);
+    final synopsis = getStr(['synopsis', 'sinopsis', 'description', 'desc']);
 
     final genres = <String>[];
-    for (final k in ['genres','genre','tags']) {
+    for (final k in ['genres', 'genre', 'tags']) {
       final v = m[k];
       if (v is List) {
         for (final it in v) {
           if (it is String) genres.add(it);
           if (it is Map) {
-            for (final nk in ['name','title','label']) {
+            for (final nk in ['name', 'title', 'label']) {
               final vv = it[nk];
-              if (vv is String && vv.trim().isNotEmpty) { genres.add(vv.trim()); break; }
+              if (vv is String && vv.trim().isNotEmpty) {
+                genres.add(vv.trim());
+                break;
+              }
             }
           }
         }
@@ -283,7 +339,7 @@ class EpisodeDisplay {
 
   EpisodeDisplay({this.title, this.slug, this.releasedAt});
 
-    factory EpisodeDisplay.fromMap(Map<String, dynamic> m) {
+  factory EpisodeDisplay.fromMap(Map<String, dynamic> m) {
     String? getStr(List<String> keys) {
       for (final k in keys) {
         final v = m[k];
@@ -293,19 +349,34 @@ class EpisodeDisplay {
     }
 
     // Judul bisa datang sebagai 'episode' (contoh payload)
-    String? title = getStr(['title','name','episodeTitle','judul','label','episode']);
+    String? title = getStr([
+      'title',
+      'name',
+      'episodeTitle',
+      'judul',
+      'label',
+      'episode',
+    ]);
 
     // Kalau ada nomor episode, tambahkan ke judul (opsional tapi informatif)
     final numDyn = m['episode_number'];
     if (numDyn is num) {
       final n = numDyn.toInt();
-      if ((title == null || !title.toLowerCase().contains('episode')) && n > 0) {
+      if ((title == null || !title.toLowerCase().contains('episode')) &&
+          n > 0) {
         title = (title == null ? 'Episode $n' : '$title');
       }
     }
 
-    final slug = getStr(['slug','id','episodeId','path','link']);
-    final releasedAt = getStr(['released','aired','date','published','created_at','uploaded_at']);
+    final slug = getStr(['slug', 'id', 'episodeId', 'path', 'link']);
+    final releasedAt = getStr([
+      'released',
+      'aired',
+      'date',
+      'published',
+      'created_at',
+      'uploaded_at',
+    ]);
 
     return EpisodeDisplay(title: title, slug: slug, releasedAt: releasedAt);
   }
@@ -333,12 +404,18 @@ class EpisodeDetailDisplay {
     this.prevSlug,
   });
 
-  factory EpisodeDetailDisplay.fromMap(Map<String, dynamic> mm, String? titleFallback) {
+  factory EpisodeDetailDisplay.fromMap(
+    Map<String, dynamic> mm,
+    String? titleFallback,
+  ) {
     // unwrap jika masih dibungkus
     Map<String, dynamic> m = Map<String, dynamic>.from(mm);
-    for (final key in ['data','result','episode','detail']) {
+    for (final key in ['data', 'result', 'episode', 'detail']) {
       final v = m[key];
-      if (v is Map) { m = Map<String, dynamic>.from(v); break; }
+      if (v is Map) {
+        m = Map<String, dynamic>.from(v);
+        break;
+      }
     }
 
     String? getStr(List<String> keys, [Map<String, dynamic>? src]) {
@@ -350,7 +427,9 @@ class EpisodeDetailDisplay {
       return null;
     }
 
-    final title = getStr(['title','name','episodeTitle','judul','episode']) ?? titleFallback;
+    final title =
+        getStr(['title', 'name', 'episodeTitle', 'judul', 'episode']) ??
+        titleFallback;
 
     final direct = <DirectStream>[];
 
@@ -361,13 +440,13 @@ class EpisodeDetailDisplay {
     }
 
     // 2) pola umum lain yang mungkin ada
-    for (final k in ['url','embed','streamUrl','playUrl']) {
+    for (final k in ['url', 'embed', 'streamUrl', 'playUrl']) {
       final v = m[k];
       if (v is String && v.trim().isNotEmpty) {
         direct.add(DirectStream(label: k, url: v.trim()));
       }
     }
-    for (final listKey in ['sources','links','streams','players']) {
+    for (final listKey in ['sources', 'links', 'streams', 'players']) {
       final v = m[listKey];
       if (v is List) {
         for (final it in v) {
@@ -375,18 +454,28 @@ class EpisodeDetailDisplay {
             direct.add(DirectStream(label: listKey, url: it.trim()));
           } else if (it is Map) {
             String? url;
-            for (final k in ['url','embed','src','file','link']) {
+            for (final k in ['url', 'embed', 'src', 'file', 'link']) {
               final vv = it[k];
-              if (vv is String && vv.trim().isNotEmpty) { url = vv.trim(); break; }
+              if (vv is String && vv.trim().isNotEmpty) {
+                url = vv.trim();
+                break;
+              }
             }
-            final label = (it['name'] ?? it['label'] ?? it['server'] ?? it['quality'] ?? listKey)?.toString();
+            final label =
+                (it['name'] ??
+                        it['label'] ??
+                        it['server'] ??
+                        it['quality'] ??
+                        listKey)
+                    ?.toString();
             if (url != null) direct.add(DirectStream(label: label, url: url));
           }
         }
       }
     }
 
-    // 3) download_urls (contoh payload) → flatten jadi DirectStream bertagar "Download ..."
+    // 3) download_urls (contoh payload)
+    // Filter: hanya ambil provider GoFile untuk resolusi 720p dan 1080p
     final dl = m['download_urls'];
     if (dl is Map) {
       dl.forEach((formatKey, listVal) {
@@ -394,18 +483,30 @@ class EpisodeDetailDisplay {
         if (listVal is List) {
           for (final resObj in listVal) {
             if (resObj is Map) {
-              final resolution = resObj['resolution']?.toString();
+              final resolution = resObj['resolution']?.toString().toLowerCase();
+              // hanya 720 / 1080
+              if (resolution == null ||
+                  !(resolution.contains('720') || resolution.contains('1080')))
+                continue;
               final urls = resObj['urls'];
               if (urls is List) {
                 for (final u in urls) {
                   if (u is Map) {
                     final provider = u['provider']?.toString();
                     final url = u['url']?.toString();
-                    if (url != null && url.trim().isNotEmpty) {
-                      final label = 'Download $format'
-                          '${resolution != null ? ' $resolution' : ''}'
-                          '${provider != null ? ' — $provider' : ''}';
-                      direct.add(DirectStream(label: label, url: url.trim(), isDownload: true));
+                    if (provider != null &&
+                        provider.toLowerCase().contains('gofile') &&
+                        url != null &&
+                        url.trim().isNotEmpty) {
+                      final label =
+                          'Download $format ${resolution.toUpperCase()} — $provider';
+                      direct.add(
+                        DirectStream(
+                          label: label,
+                          url: url.trim(),
+                          isDownload: true,
+                        ),
+                      );
                     }
                   }
                 }
@@ -418,24 +519,38 @@ class EpisodeDetailDisplay {
 
     // 4) servers (kalau API pakai serverId)
     final servers = <ServerItem>[];
-    for (final listKey in ['servers','server','streamingServers','data']) {
+    for (final listKey in ['servers', 'server', 'streamingServers', 'data']) {
       final v = m[listKey];
       if (v is List) {
         for (final it in v) {
           if (it is Map) {
             String? id;
-            for (final k in ['serverId','id','sid']) {
+            for (final k in ['serverId', 'id', 'sid']) {
               final vv = it[k];
-              if (vv is String && vv.trim().isNotEmpty) { id = vv.trim(); break; }
+              if (vv is String && vv.trim().isNotEmpty) {
+                id = vv.trim();
+                break;
+              }
             }
-            final name = (it['name'] ?? it['label'] ?? it['server'] ?? it['title'] ?? 'Server').toString();
+            final name =
+                (it['name'] ??
+                        it['label'] ??
+                        it['server'] ??
+                        it['title'] ??
+                        'Server')
+                    .toString();
             String? url;
-            for (final k in ['url','embed','src','file','link']) {
+            for (final k in ['url', 'embed', 'src', 'file', 'link']) {
               final vv = it[k];
-              if (vv is String && vv.trim().isNotEmpty) { url = vv.trim(); break; }
+              if (vv is String && vv.trim().isNotEmpty) {
+                url = vv.trim();
+                break;
+              }
             }
             if (url != null) {
-              direct.add(DirectStream(label: name, url: url)); // treat as direct
+              direct.add(
+                DirectStream(label: name, url: url),
+              ); // treat as direct
             } else if (id != null) {
               servers.add(ServerItem(serverId: id, name: name));
             }
@@ -450,7 +565,9 @@ class EpisodeDetailDisplay {
       nextSlug = getStr(['slug'], Map<String, dynamic>.from(m['next_episode']));
     }
     if (m['previous_episode'] is Map) {
-      prevSlug = getStr(['slug'], Map<String, dynamic>.from(m['previous_episode']));
+      prevSlug = getStr([
+        'slug',
+      ], Map<String, dynamic>.from(m['previous_episode']));
     }
 
     return EpisodeDetailDisplay(

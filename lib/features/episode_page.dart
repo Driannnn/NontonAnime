@@ -283,10 +283,10 @@ class _EpisodePageState extends State<EpisodePage> {
                   ),
                 ),
 
-              // ===== DOWNLOAD LINKS =====
+              // ===== DOWNLOAD LINKS (GoFile 720p/1080p) =====
               if (downloads.isNotEmpty) ...[
                 Text(
-                  'Download',
+                  '⬇️ Download (GoFile 720p/1080p)',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 8),
@@ -299,15 +299,32 @@ class _EpisodePageState extends State<EpisodePage> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       trailing: const Icon(Icons.download),
-                      onTap: () {
-                        // kamu bisa pakai url_launcher di sini kalau mau buka link download
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Implement buka / unduh link di sini 👍',
-                            ),
-                          ),
-                        );
+                      onTap: () async {
+                        if (d.url != null && d.url!.isNotEmpty) {
+                          try {
+                            final uri = Uri.parse(d.url!);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(
+                                uri,
+                                mode: LaunchMode.externalApplication,
+                              );
+                            } else {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('❌ Tidak dapat membuka link'),
+                                  ),
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error: $e')),
+                              );
+                            }
+                          }
+                        }
                       },
                     ),
                   ),
