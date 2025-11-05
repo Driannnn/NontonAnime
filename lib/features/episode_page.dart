@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/api_client.dart';
 import '../models/anime_models.dart';
 import '../widgets/common.dart';
+import '../utils/web_iframe.dart';
 
 class EpisodePage extends StatefulWidget {
   final String episodeSlug;
@@ -18,6 +21,7 @@ class _EpisodePageState extends State<EpisodePage> {
   late Future<Map<String, dynamic>> _future;
 
   WebViewController? _webCtrl;
+  String? _iframeViewType;
   String? _currentEpisodeSlug;
 
   @override
@@ -39,12 +43,40 @@ class _EpisodePageState extends State<EpisodePage> {
   }
 
   void _initWebViewFromUrl(String url) {
-    final ctrl = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadRequest(Uri.parse(url));
-    setState(() {
-      _webCtrl = ctrl;
-    });
+    debugPrint('🌐 _initWebViewFromUrl called, kIsWeb=$kIsWeb');
+    if (kIsWeb) {
+      // Web: gunakan WebIframeFactory
+      debugPrint('🌐 Web platform detected, using WebIframeFactory');
+      _iframeViewType = WebIframeFactory.register(url);
+      setState(() {});
+    } else {
+      // Mobile: gunakan WebViewController
+      debugPrint('📱 Mobile platform detected, using WebViewController');
+      try {
+        final ctrl = WebViewController()
+          ..setJavaScriptMode(JavaScriptMode.unrestricted)
+          ..enableZoom(true)
+          ..setNavigationDelegate(
+            NavigationDelegate(
+              onPageStarted: (String url) {
+                debugPrint('📱 WebView loading: $url');
+              },
+              onPageFinished: (String url) {
+                debugPrint('📱 WebView finished: $url');
+              },
+              onWebResourceError: (WebResourceError error) {
+                debugPrint('📱 WebView error: ${error.description}');
+              },
+            ),
+          )
+          ..loadRequest(Uri.parse(url));
+        setState(() {
+          _webCtrl = ctrl;
+        });
+      } catch (e) {
+        debugPrint('📱 Error initializing WebViewController: $e');
+      }
+    }
   }
 
   // Check apakah URL adalah embed HTML (iframe, player dll) atau direct video
@@ -66,11 +98,51 @@ class _EpisodePageState extends State<EpisodePage> {
     return true;
   }
 
+  // Widget fallback ketika player tidak bisa load
+  Widget _buildPlayerFallback(BuildContext context, String? streamUrl) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.video_library, size: 48, color: Colors.white54),
+          const SizedBox(height: 16),
+          const Text(
+            'Player tidak bisa diload',
+            style: TextStyle(color: Colors.white70, fontSize: 16),
+          ),
+          const SizedBox(height: 24),
+          if (streamUrl != null)
+            FilledButton.icon(
+              onPressed: () async {
+                try {
+                  final uri = Uri.parse(streamUrl);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Tidak bisa membuka URL')),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  debugPrint('Error launching URL: $e');
+                }
+              },
+              icon: const Icon(Icons.open_in_new),
+              label: const Text('Buka di Browser'),
+            ),
+        ],
+      ),
+    );
+  }
+
   // ganti episode (next/prev)
   void _loadNewEpisode(String slug, {String? newTitle}) {
     setState(() {
       _currentEpisodeSlug = slug;
       _webCtrl = null;
+      _iframeViewType = null;
       _future = fetchEpisodeDetail(slug);
     });
   }
@@ -124,15 +196,17 @@ class _EpisodePageState extends State<EpisodePage> {
 
           // DEBUG
           debugPrint('=== EPISODE PAGE DEBUG ===');
+          debugPrint('kIsWeb: $kIsWeb');
           debugPrint('Stream URL: $streamUrl');
           debugPrint('Can load in WebView: $canLoadInWebView');
           debugPrint('_webCtrl: $_webCtrl');
+          debugPrint('_iframeViewType: $_iframeViewType');
 
-          // kalau bisa di-webview dan belum punya controller, init sekarang
-          if (canLoadInWebView && _webCtrl == null) {
+          // kalau bisa di-webview dan belum punya controller/iframe, init sekarang
+          if (canLoadInWebView && _webCtrl == null && _iframeViewType == null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted) return;
-              if (_webCtrl == null) {
+              if (_webCtrl == null && _iframeViewType == null) {
                 debugPrint('Initializing WebView with URL: $streamUrl');
                 _initWebViewFromUrl(streamUrl);
               }
@@ -155,14 +229,13 @@ class _EpisodePageState extends State<EpisodePage> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: _webCtrl == null
-                      ? const Center(
-                          child: Text(
-                            'Loading player...',
-                            style: TextStyle(color: Colors.white70),
-                          ),
-                        )
-                      : WebViewWidget(controller: _webCtrl!),
+                  child: kIsWeb
+                      ? (_iframeViewType == null
+                            ? _buildPlayerFallback(context, streamUrl)
+                            : HtmlElementView(viewType: _iframeViewType!))
+                      : (_webCtrl == null
+                            ? _buildPlayerFallback(context, streamUrl)
+                            : WebViewWidget(controller: _webCtrl!)),
                 ),
               ),
               const SizedBox(height: 16),

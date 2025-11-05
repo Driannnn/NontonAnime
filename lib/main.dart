@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
-import 'features/home_page.dart';
+import 'router/app_router.dart';
 
 void main() {
   runApp(const AnimeApp());
@@ -11,11 +11,11 @@ class AnimeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Anime Pastel',
       debugShowCheckedModeBanner: false,
       theme: buildPastelTheme(),
-      home: const HomePage(),
+      routerConfig: appRouter,
     );
   }
 }

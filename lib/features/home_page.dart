@@ -1,12 +1,11 @@
-import 'package:diotest/features/anime_search_page.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../core/api_client.dart';
 import '../utils/string_utils.dart';
 import '../widgets/common.dart';
 import '../models/anime_models.dart';
 import 'anime_card.dart';
 import 'genre_list_page.dart';
-import 'completed_anime_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -40,11 +39,7 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: const Icon(Icons.check_circle_outline),
             tooltip: 'Anime Tamat',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const CompletedAnimePage()),
-              );
-            },
+            onPressed: () => context.go('/completed'),
           ),
           IconButton(
             icon: const Icon(Icons.category_outlined),
@@ -58,11 +53,7 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: const Icon(Icons.search),
             tooltip: 'Cari Anime',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AnimeSearchPage()),
-              );
-            },
+            onPressed: () => context.go('/search'),
           ),
         ],
 

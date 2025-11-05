@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 
 // Ambil HANYA AnimeDisplay dari models
 import '../models/anime_models.dart' show AnimeDisplay;
-// Ambil HANYA AnimeDetailPage dari file detail (hindari bentrok AnimeDisplay)
-import './anime_detail_page.dart' show AnimeDetailPage;
 import '../widgets/common.dart';
 import '../utils/image_proxy_utils.dart';
 
@@ -26,12 +25,7 @@ class AnimeCard extends StatelessWidget {
             );
             return;
           }
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) =>
-                  AnimeDetailPage(slug: slug, titleFallback: display.title),
-            ),
-          );
+          context.go('/anime/$slug');
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
