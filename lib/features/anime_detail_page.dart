@@ -7,11 +7,22 @@ import '../widgets/common.dart';
 import 'episode_page.dart';
 import '../utils/slug_utils.dart';
 import '../utils/image_proxy_utils.dart';
+import 'package:go_router/go_router.dart';
 
 class AnimeDetailPage extends StatefulWidget {
   final String slug;
   final String? titleFallback;
-  const AnimeDetailPage({super.key, required this.slug, this.titleFallback});
+  final String source;
+  final String? genreSlug;
+  final String? genreName;
+  const AnimeDetailPage({
+    super.key,
+    required this.slug,
+    this.titleFallback,
+    this.source = 'home',
+    this.genreSlug,
+    this.genreName,
+  });
 
   @override
   State<AnimeDetailPage> createState() => _AnimeDetailPageState();
@@ -35,7 +46,27 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
 
     return Scaffold(
       backgroundColor: cs.background,
-      appBar: AppBar(title: const Text('Detail Anime')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (widget.source == 'search') {
+              context.go('/search');
+            } else if (widget.source == 'genre') {
+              if (widget.genreSlug != null && widget.genreName != null) {
+                context.go(
+                  '/genre/${widget.genreSlug}?name=${widget.genreName}',
+                );
+              } else {
+                context.go('/');
+              }
+            } else {
+              context.go('/');
+            }
+          },
+        ),
+        title: const Text('Detail Anime'),
+      ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _future,
         builder: (context, snap) {

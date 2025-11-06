@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 
 import '../widgets/common.dart';
 import '../models/anime_models.dart';
-import 'anime_detail_page.dart';
 import '../utils/slug_utils.dart';
 import '../utils/image_proxy_utils.dart';
 
@@ -166,13 +166,8 @@ class _GenreAnimePageState extends State<GenreAnimePage> {
                             if (normalizedSlug == null ||
                                 normalizedSlug.isEmpty)
                               return;
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => AnimeDetailPage(
-                                  slug: normalizedSlug,
-                                  titleFallback: item.title,
-                                ),
-                              ),
+                            context.go(
+                              '/anime/$normalizedSlug?source=genre&genreSlug=${widget.genreSlug}&genreName=${widget.genreName}',
                             );
                           },
                           child: Column(

@@ -23,7 +23,15 @@ final appRouter = GoRouter(
       name: 'animeDetail',
       builder: (context, state) {
         final animeSlug = state.pathParameters['animeSlug']!;
-        return AnimeDetailPage(slug: animeSlug);
+        final source = state.uri.queryParameters['source'] ?? 'home';
+        final genreSlug = state.uri.queryParameters['genreSlug'];
+        final genreName = state.uri.queryParameters['genreName'];
+        return AnimeDetailPage(
+          slug: animeSlug,
+          source: source,
+          genreSlug: genreSlug,
+          genreName: genreName,
+        );
       },
     ),
 

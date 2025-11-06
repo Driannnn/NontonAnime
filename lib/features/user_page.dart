@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/auth_service.dart';
 import '../models/comment_models.dart';
 import '../widgets/login_dialog.dart';
+import 'package:go_router/go_router.dart';
 
 class UserPage extends StatefulWidget {
   const UserPage({super.key});
@@ -25,7 +26,13 @@ class _UserPageState extends State<UserPage> {
 
         if (currentUser == null) {
           return Scaffold(
-            appBar: AppBar(title: const Text('Profil')),
+            appBar: AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.go('/'),
+              ),
+              title: const Text('Profil'),
+            ),
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

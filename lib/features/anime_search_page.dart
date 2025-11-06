@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 
 import '../widgets/common.dart';
 import '../models/anime_models.dart';
-import 'anime_detail_page.dart';
 import '../utils/slug_utils.dart';
 import '../utils/image_proxy_utils.dart';
 
@@ -22,7 +22,14 @@ class AnimeSearchPage extends StatelessWidget {
       create: (_) => AnimeSearchCubit(),
       child: Scaffold(
         backgroundColor: cs.background,
-        appBar: AppBar(title: const Text('Cari Anime'), centerTitle: true),
+        appBar: AppBar(
+          title: const Text('Cari Anime'),
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/'),
+          ),
+        ),
         body: const _SearchBody(),
       ),
     );
@@ -148,13 +155,7 @@ class _SearchResultTile extends StatelessWidget {
         if (rawSlug == null || rawSlug.isEmpty) return;
 
         final fixedSlug = normalizeAnimeSlug(rawSlug);
-
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) =>
-                AnimeDetailPage(slug: fixedSlug, titleFallback: item.title),
-          ),
-        );
+        context.go('/anime/$fixedSlug?source=search');
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
