@@ -58,10 +58,10 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                   '/genre/${widget.genreSlug}?name=${widget.genreName}',
                 );
               } else {
-                context.go('/');
+                context.go('/home');
               }
             } else {
-              context.go('/');
+              context.go('/home');
             }
           },
         ),
