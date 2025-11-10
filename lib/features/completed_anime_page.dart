@@ -308,21 +308,47 @@ class _CompletedAnimePageState extends State<CompletedAnimePage> {
   }
 }
 
-// model kecil khusus halaman ini
+// Model kecil khusus halaman ini dengan Getter dan Setter Eksplisit
 class _CompletedAnimeItem {
-  final String title;
-  final String slug;
-  final String poster;
-  final String rating;
-  final String episodeCount;
-  final String lastRelease;
+  // 1. Properti diubah menjadi private
+  late String _title;
+  late String _slug;
+  late String _poster;
+  late String _rating;
+  late String _episodeCount;
+  late String _lastRelease;
 
+  // 2. Getter publik untuk setiap properti
+  String get title => _title;
+  String get slug => _slug;
+  String get poster => _poster;
+  String get rating => _rating;
+  String get episodeCount => _episodeCount;
+  String get lastRelease => _lastRelease;
+
+  // 3. Setter publik untuk setiap properti
+  set title(String value) => _title = value;
+  set slug(String value) => _slug = value;
+  set poster(String value) => _poster = value;
+  set rating(String value) => _rating = value;
+  set episodeCount(String value) => _episodeCount = value;
+  set lastRelease(String value) => _lastRelease = value;
+
+  // 4. Konstruktor diubah untuk menggunakan setter atau mengisi properti private
   _CompletedAnimeItem({
-    required this.title,
-    required this.slug,
-    required this.poster,
-    required this.rating,
-    required this.episodeCount,
-    required this.lastRelease,
-  });
+    required String title,
+    required String slug,
+    required String poster,
+    required String rating,
+    required String episodeCount,
+    required String lastRelease,
+  }) {
+    // Menggunakan setter untuk mengisi nilai awal
+    this.title = title;
+    this.slug = slug;
+    this.poster = poster;
+    this.rating = rating;
+    this.episodeCount = episodeCount;
+    this.lastRelease = lastRelease;
+  }
 }
