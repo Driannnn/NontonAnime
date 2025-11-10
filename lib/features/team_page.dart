@@ -21,7 +21,7 @@ class TeamPage extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.push('/home'),
+          onPressed: () => context.go('/home'),
         ),
       ),
       body: SingleChildScrollView(

@@ -51,17 +51,17 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
             if (widget.source == 'search') {
-              context.push('/home/search');
+              context.go('/search');
             } else if (widget.source == 'genre') {
               if (widget.genreSlug != null && widget.genreName != null) {
-                context.push(
+                context.go(
                   '/genre/${widget.genreSlug}?name=${widget.genreName}',
                 );
               } else {
-                context.push('/home');
+                context.go('/home');
               }
             } else {
-              context.push('/home');
+              context.go('/home');
             }
           },
         ),

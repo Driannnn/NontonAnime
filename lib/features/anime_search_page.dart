@@ -27,7 +27,7 @@ class AnimeSearchPage extends StatelessWidget {
           centerTitle: true,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
+            onPressed: () => context.go('/home'),
           ),
         ),
         body: const _SearchBody(),
@@ -155,7 +155,7 @@ class _SearchResultTile extends StatelessWidget {
         if (rawSlug == null || rawSlug.isEmpty) return;
 
         final fixedSlug = normalizeAnimeSlug(rawSlug);
-        context.push('/anime/$fixedSlug?source=search');
+        context.go('/anime/$fixedSlug?source=search');
       },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

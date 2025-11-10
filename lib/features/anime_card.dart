@@ -25,7 +25,7 @@ class AnimeCard extends StatelessWidget {
             );
             return;
           }
-          context.push('/anime/$slug');
+          context.go('/anime/$slug');
         },
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -127,7 +127,7 @@ class _CompletedAnimePageState extends State<CompletedAnimePage> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.push('/home'),
+          onPressed: () => context.go('/home'),
         ),
         title: const Text('Anime Tamat'),
         centerTitle: true,
@@ -172,7 +172,7 @@ class _CompletedAnimePageState extends State<CompletedAnimePage> {
                                 return InkWell(
                                   onTap: () {
                                     if (normalizedSlug.isEmpty) return;
-                                    context.push(
+                                    context.go(
                                       '/anime/$normalizedSlug?source=completed',
                                     );
                                   },
