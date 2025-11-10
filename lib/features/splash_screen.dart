@@ -57,20 +57,11 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.blue.shade700,
-              Colors.blue.shade500,
-              Colors.lightBlue.shade400,
-            ],
-          ),
-        ),
+        color: Colors.white,
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
@@ -80,34 +71,16 @@ class _SplashScreenState extends State<SplashScreen>
                 scale: _scaleAnimation.value,
                 child: SingleChildScrollView(
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: 100.h,
-                    ),
+                    constraints: BoxConstraints(minHeight: 100.h),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Logo Container
-                        Container(
-                          width: 25.w,
-                          height: 25.w,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 18,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Image.asset(
-                              'assets/logo.png',
-                              fit: BoxFit.cover,
-                            ),
-                          ),
+                        // Logo 
+                        Image.asset(
+                          'assets/logo.gif',
+                          width: 35.w,
+                          height: 35.w,
+                          fit: BoxFit.contain,
                         ),
                         const SizedBox(height: 18),
 
@@ -117,7 +90,7 @@ class _SplashScreenState extends State<SplashScreen>
                           style: TextStyle(
                             fontSize: 7.5.sp,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Colors.black,
                             letterSpacing: 1.5,
                           ),
                         ),
@@ -128,7 +101,7 @@ class _SplashScreenState extends State<SplashScreen>
                           'Selamat Menonton',
                           style: TextStyle(
                             fontSize: 5.5.sp,
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.grey.shade700,
                             letterSpacing: 1,
                           ),
                         ),
@@ -141,7 +114,7 @@ class _SplashScreenState extends State<SplashScreen>
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white.withOpacity(0.8),
+                              Colors.grey.shade600,
                             ),
                           ),
                         ),
