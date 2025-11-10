@@ -6,13 +6,22 @@ import '../features/anime_search_page.dart';
 import '../features/genre_results_page.dart';
 import '../features/completed_anime_page.dart';
 import '../features/user_page.dart';
+import '../features/team_page.dart';
+import '../features/splash_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/',
   routes: [
-    // Home page
+    // Splash screen
     GoRoute(
       path: '/',
+      name: 'splash',
+      builder: (context, state) => const SplashScreen(),
+    ),
+
+    // Home page
+    GoRoute(
+      path: '/home',
       name: 'home',
       builder: (context, state) => const HomePage(),
     ),
@@ -81,6 +90,13 @@ final appRouter = GoRouter(
       path: '/profile',
       name: 'profile',
       builder: (context, state) => const UserPage(),
+    ),
+
+    // Team page
+    GoRoute(
+      path: '/team',
+      name: 'team',
+      builder: (context, state) => const TeamPage(),
     ),
   ],
 );

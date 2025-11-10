@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../core/api_client.dart';
+import '../core/auth_service.dart';
+import '../models/comment_models.dart';
 import '../utils/string_utils.dart';
 import '../widgets/common.dart';
 import '../models/anime_models.dart';
@@ -15,6 +17,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Future<Map<String, List<Map<String, dynamic>>>>? _future;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
@@ -34,12 +37,54 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: cs.background,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.group_outlined),
+          tooltip: 'Tim',
+          onPressed: () => context.go('/team'),
+        ),
         title: const Text('Anime — Home'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            tooltip: 'Profil',
-            onPressed: () => context.go('/profile'),
+          StreamBuilder(
+            stream: _authService.authStateChanges,
+            builder: (context, snapshot) {
+              final currentUser = _authService.currentUser;
+              if (currentUser == null) {
+                return Row(
+                  children: [
+                    const Text('user'),
+                    IconButton(
+                      icon: const Icon(Icons.person_outline),
+                      tooltip: 'Profil',
+                      onPressed: () => context.go('/profile'),
+                    ),
+                  ],
+                );
+              }
+              return FutureBuilder<AppUser?>(
+                future: _authService.getUser(currentUser.uid),
+                builder: (context, userSnapshot) {
+                  String displayName = '...';
+                  if (userSnapshot.hasData) {
+                    displayName = userSnapshot.data?.username ??
+                        currentUser.email ??
+                        'user';
+                  } else if (userSnapshot.hasError) {
+                    displayName = 'error';
+                  }
+
+                  return Row(
+                    children: [
+                      Text(displayName),
+                      IconButton(
+                        icon: const Icon(Icons.person),
+                        tooltip: 'Profil',
+                        onPressed: () => context.go('/profile'),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.check_circle_outline),
@@ -61,7 +106,6 @@ class _HomePageState extends State<HomePage> {
             onPressed: () => context.go('/search'),
           ),
         ],
-
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -72,7 +116,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-
       body: RefreshIndicator(
         onRefresh: _reload,
         child: FutureBuilder<Map<String, List<Map<String, dynamic>>>>(
