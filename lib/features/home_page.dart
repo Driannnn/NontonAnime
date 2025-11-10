@@ -42,7 +42,7 @@ class _HomePageState extends State<HomePage> {
           tooltip: 'Tim',
           onPressed: () => context.go('/team'),
         ),
-        title: const Text('Anime — Home'),
+        title: const Text('ANIMO'),
         actions: [
           StreamBuilder(
             stream: _authService.authStateChanges,

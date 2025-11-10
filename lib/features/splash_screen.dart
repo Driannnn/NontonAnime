@@ -107,7 +107,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                     // App Name
                     const Text(
-                      'NontonAnime',
+                      'ANIMO',
                       style: TextStyle(
                         fontSize: 42,
                         fontWeight: FontWeight.bold,
@@ -119,7 +119,7 @@ class _SplashScreenState extends State<SplashScreen>
 
                     // Tagline
                     Text(
-                      'Solusi Digital Anda',
+                      'Selamat Menonton',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.white.withOpacity(0.9),
