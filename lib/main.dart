@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:sizer/sizer.dart';
 import 'theme/app_theme.dart';
 import 'router/app_router.dart';
 import 'firebase_options.dart';
@@ -28,11 +29,15 @@ class AnimeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Anime Pastel',
-      debugShowCheckedModeBanner: false,
-      theme: buildPastelTheme(),
-      routerConfig: appRouter,
+    return Sizer(
+      builder: (context, orientation, deviceType) {
+        return MaterialApp.router(
+          title: 'Anime Pastel',
+          debugShowCheckedModeBanner: false,
+          theme: buildPastelTheme(),
+          routerConfig: appRouter,
+        );
+      },
     );
   }
 }
