@@ -166,7 +166,7 @@ class _GenreAnimePageState extends State<GenreAnimePage> {
                             if (normalizedSlug == null ||
                                 normalizedSlug.isEmpty)
                               return;
-                            context.go(
+                            context.push(
                               '/anime/$normalizedSlug?source=genre&genreSlug=${widget.genreSlug}&genreName=${widget.genreName}',
                             );
                           },

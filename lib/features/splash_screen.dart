@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:sizer/sizer.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -41,7 +42,7 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
 
     // Navigate to home after 3 seconds
-    Future.delayed(const Duration(seconds: 3), () {
+    Future.delayed(const Duration(seconds: 5), () {
       if (mounted) {
         context.replace('/home');
       }
@@ -75,7 +76,7 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Logo 
+                        // Logo
                         Image.asset(
                           'assets/logo.gif',
                           width: 35.w,
@@ -87,7 +88,7 @@ class _SplashScreenState extends State<SplashScreen>
                         // App Name
                         Text(
                           'ANIMO',
-                          style: TextStyle(
+                          style: GoogleFonts.cherryBombOne(
                             fontSize: 7.5.sp,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
@@ -98,8 +99,8 @@ class _SplashScreenState extends State<SplashScreen>
 
                         // Tagline
                         Text(
-                          'Selamat Menonton',
-                          style: TextStyle(
+                          'Enjoy Watching!',
+                          style: GoogleFonts.cherryBombOne(
                             fontSize: 5.5.sp,
                             color: Colors.grey.shade700,
                             letterSpacing: 1,

@@ -40,7 +40,7 @@ class _HomePageState extends State<HomePage> {
         leading: IconButton(
           icon: const Icon(Icons.group_outlined),
           tooltip: 'Tim',
-          onPressed: () => context.go('/team'),
+          onPressed: () => context.push('/team'),
         ),
         title: const Text('ANIMO'),
         actions: [
@@ -55,7 +55,7 @@ class _HomePageState extends State<HomePage> {
                     IconButton(
                       icon: const Icon(Icons.person_outline),
                       tooltip: 'Profil',
-                      onPressed: () => context.go('/profile'),
+                      onPressed: () => context.push('/profile'),
                     ),
                   ],
                 );
@@ -65,7 +65,8 @@ class _HomePageState extends State<HomePage> {
                 builder: (context, userSnapshot) {
                   String displayName = '...';
                   if (userSnapshot.hasData) {
-                    displayName = userSnapshot.data?.username ??
+                    displayName =
+                        userSnapshot.data?.username ??
                         currentUser.email ??
                         'user';
                   } else if (userSnapshot.hasError) {
@@ -78,7 +79,7 @@ class _HomePageState extends State<HomePage> {
                       IconButton(
                         icon: const Icon(Icons.person),
                         tooltip: 'Profil',
-                        onPressed: () => context.go('/profile'),
+                        onPressed: () => context.push('/profile'),
                       ),
                     ],
                   );
@@ -89,7 +90,7 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: const Icon(Icons.check_circle_outline),
             tooltip: 'Anime Tamat',
-            onPressed: () => context.go('/completed'),
+            onPressed: () => context.push('/completed'),
           ),
           IconButton(
             icon: const Icon(Icons.category_outlined),
@@ -103,7 +104,7 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: const Icon(Icons.search),
             tooltip: 'Cari Anime',
-            onPressed: () => context.go('/search'),
+            onPressed: () => context.push('/home/search'),
           ),
         ],
         flexibleSpace: Container(

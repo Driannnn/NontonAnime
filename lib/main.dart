@@ -5,6 +5,7 @@ import 'package:sizer/sizer.dart';
 import 'theme/app_theme.dart';
 import 'router/app_router.dart';
 import 'firebase_options.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // ⚠️ Web-specific import untuk URL strategy
 // Conditional import: hanya di-compile untuk web

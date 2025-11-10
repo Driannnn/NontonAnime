@@ -29,7 +29,7 @@ class _UserPageState extends State<UserPage> {
             appBar: AppBar(
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => context.go('/home'),
+                onPressed: () => context.push('/home'),
               ),
               title: const Text('Profil'),
             ),
@@ -68,7 +68,7 @@ class _UserPageState extends State<UserPage> {
           appBar: AppBar(
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.go('/home'),
+              onPressed: () => context.push('/home'),
             ),
             title: const Text('Profil'),
             actions: [
