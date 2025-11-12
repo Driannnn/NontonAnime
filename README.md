@@ -136,7 +136,7 @@ Driannnn
 | **[Izora Elverda Narulita Putri](https://github.com/Elverda)** | 24111814012 |
 | **[Hanna Maulidhea](https://github.com/maulidhea)** | 24111814091 |
 | **[Najwa Chava Safiera](https://github.com/sh3vaya)** | 24111814118 |
-| **[Nama](link github)** | NIM |
+| **[Muhammad Dzikri Azkia Ridwani](https://github.com/azzkiaa)** | 24111814076 |
 | **[Nama](link github)** | NIM |
 | **[Nama](link github)** | NIM |
 
