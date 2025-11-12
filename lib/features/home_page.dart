@@ -19,6 +19,9 @@ class _HomePageState extends State<HomePage> {
   Future<Map<String, List<Map<String, dynamic>>>>? _future;
   final AuthService _authService = AuthService();
 
+  // Define breakpoint for adaptive UI
+  static const double kMobileBreakpoint = 600.0;
+
   @override
   void initState() {
     super.initState();
@@ -30,82 +33,192 @@ class _HomePageState extends State<HomePage> {
     await _future;
   }
 
+  // Ekstrak widget profil/user untuk digunakan di actions dan drawer
+  Widget _buildUserProfileWidget(BuildContext context, {bool asDrawerItem = false}) {
+    final currentUser = _authService.currentUser;
+    return StreamBuilder(
+      stream: _authService.authStateChanges,
+      builder: (context, snapshot) {
+        if (currentUser == null) {
+          if (asDrawerItem) {
+            return ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text('Profil / Login'),
+              onTap: () {
+                context.pop(); // Close drawer
+                context.go('/profile');
+              },
+            );
+          }
+          return Row(
+            children: [
+              const Text('user'),
+              IconButton(
+                icon: const Icon(Icons.person_outline),
+                tooltip: 'Profil',
+                onPressed: () => context.go('/profile'),
+              ),
+            ],
+          );
+        }
+        return FutureBuilder<AppUser?>(
+          future: _authService.getUser(currentUser.uid),
+          builder: (context, userSnapshot) {
+            String displayName = '...';
+            if (userSnapshot.hasData) {
+              displayName = userSnapshot.data?.username ??
+                  currentUser.email ??
+                  'user';
+            } else if (userSnapshot.hasError) {
+              displayName = 'error';
+            }
+            
+            if (asDrawerItem) {
+              return ListTile(
+                leading: const Icon(Icons.person),
+                title: Text(displayName),
+                onTap: () {
+                  context.pop(); // Close drawer
+                  context.go('/profile');
+                },
+              );
+            }
+
+            return Row(
+              children: [
+                Text(displayName),
+                IconButton(
+                  icon: const Icon(Icons.person),
+                  tooltip: 'Profil',
+                  onPressed: () => context.go('/profile'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < kMobileBreakpoint;
+
+    // Aksi Navigasi untuk tampilan lebar (desktop/tablet)
+    final List<Widget> desktopNavigationActions = [
+      _buildUserProfileWidget(context),
+      IconButton(
+        icon: const Icon(Icons.check_circle_outline),
+        tooltip: 'Anime Tamat',
+        onPressed: () => context.go('/completed'),
+      ),
+      IconButton(
+        icon: const Icon(Icons.category_outlined),
+        tooltip: 'Genre',
+        onPressed: () {
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const GenreListPage()));
+        },
+      ),
+      IconButton(
+        icon: const Icon(Icons.search),
+        tooltip: 'Cari Anime',
+        onPressed: () => context.go('/search'),
+      ),
+    ];
+
+    // Aksi Adaptif untuk AppBar
+    List<Widget> appBarActions;
+    // Leading Adaptif untuk AppBar
+    Widget? appBarLeading;
+
+    if (isMobile) {
+      // Mobile: actions kosong, biarkan drawer di 'leading' (otomatis)
+      appBarActions = [];
+      appBarLeading = null; // Ini akan membuat AppBar otomatis menampilkan ikon hamburger
+    } else {
+      // Desktop: Tampilkan semua aksi navigasi dan ikon 'Tim' di leading
+      appBarActions = desktopNavigationActions;
+      appBarLeading = IconButton(
+        icon: const Icon(Icons.group_outlined),
+        tooltip: 'Tim',
+        onPressed: () => context.go('/team'),
+      );
+    }
+
+    // Drawer (Menu Hamburger) hanya untuk tampilan mobile
+    final Widget? mobileDrawer = isMobile
+        ? Drawer(
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: <Widget>[
+                DrawerHeader(
+                  decoration: BoxDecoration(
+                    color: cs.primary,
+                  ),
+                  child: const Center( 
+                    child: Text(
+                      'Menu ANIMO', 
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                      ),
+                    ),
+                  ),
+                ),
+                // Pindahkan widget profil/user ke dalam Drawer
+                _buildUserProfileWidget(context, asDrawerItem: true),
+                
+                // PERUBAHAN: Pindahkan tombol 'Tim' ke dalam Drawer
+                ListTile(
+                  leading: const Icon(Icons.group_outlined),
+                  title: const Text('Tim'),
+                  onTap: () {
+                    context.pop(); // Tutup drawer
+                    context.go('/team');
+                  },
+                ),
+                const Divider(), // Tambahkan pemisah visual
+                ListTile(
+                  leading: const Icon(Icons.check_circle_outline),
+                  title: const Text('Anime Tamat'),
+                  onTap: () {
+                    context.pop(); // Tutup drawer
+                    context.go('/completed');
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.category_outlined),
+                  title: const Text('Genre'),
+                  onTap: () {
+                    context.pop(); // Tutup drawer
+                    Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const GenreListPage()));
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.search),
+                  title: const Text('Cari Anime'),
+                  onTap: () {
+                    context.pop(); 
+                    context.go('/search');
+                  },
+                ),
+              ],
+            ),
+          )
+        : null;
 
     return Scaffold(
       backgroundColor: cs.background,
+      drawer: mobileDrawer, 
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.group_outlined),
-          tooltip: 'Tim',
-          onPressed: () => context.go('/team'),
-        ),
+        leading: appBarLeading,
         title: const Text('ANIMO'),
-        actions: [
-          StreamBuilder(
-            stream: _authService.authStateChanges,
-            builder: (context, snapshot) {
-              final currentUser = _authService.currentUser;
-              if (currentUser == null) {
-                return Row(
-                  children: [
-                    const Text('user'),
-                    IconButton(
-                      icon: const Icon(Icons.person_outline),
-                      tooltip: 'Profil',
-                      onPressed: () => context.go('/profile'),
-                    ),
-                  ],
-                );
-              }
-              return FutureBuilder<AppUser?>(
-                future: _authService.getUser(currentUser.uid),
-                builder: (context, userSnapshot) {
-                  String displayName = '...';
-                  if (userSnapshot.hasData) {
-                    displayName = userSnapshot.data?.username ??
-                        currentUser.email ??
-                        'user';
-                  } else if (userSnapshot.hasError) {
-                    displayName = 'error';
-                  }
-
-                  return Row(
-                    children: [
-                      Text(displayName),
-                      IconButton(
-                        icon: const Icon(Icons.person),
-                        tooltip: 'Profil',
-                        onPressed: () => context.go('/profile'),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.check_circle_outline),
-            tooltip: 'Anime Tamat',
-            onPressed: () => context.go('/completed'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.category_outlined),
-            tooltip: 'Genre',
-            onPressed: () {
-              Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const GenreListPage()));
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.search),
-            tooltip: 'Cari Anime',
-            onPressed: () => context.go('/search'),
-          ),
-        ],
+        actions: appBarActions,
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
