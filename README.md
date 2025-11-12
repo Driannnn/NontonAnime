@@ -135,7 +135,7 @@ Driannnn
 | **[Muhammad Dwi Saputra](https://github.com/POKSI77)** | 24111814080 |
 | **[Izora Elverda Narulita Putri](https://github.com/Elverda)** | 24111814012 |
 | **[Hanna Maulidhea](https://github.com/maulidhea)** | 24111814091 |
-| **[Nama](link github)** | NIM |
+| **[Najwa Chava Safiera](https://github.com/sh3vaya)** | 24111814118 |
 | **[Nama](link github)** | NIM |
 | **[Nama](link github)** | NIM |
 | **[Nama](link github)** | NIM |
