@@ -169,10 +169,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
-                // Pindahkan widget profil/user ke dalam Drawer
                 _buildUserProfileWidget(context, asDrawerItem: true),
-                
-                // PERUBAHAN: Pindahkan tombol 'Tim' ke dalam Drawer
                 ListTile(
                   leading: const Icon(Icons.group_outlined),
                   title: const Text('Tim'),
@@ -181,7 +178,7 @@ class _HomePageState extends State<HomePage> {
                     context.go('/team');
                   },
                 ),
-                const Divider(), // Tambahkan pemisah visual
+                const Divider(),
                 ListTile(
                   leading: const Icon(Icons.check_circle_outline),
                   title: const Text('Anime Tamat'),
@@ -203,7 +200,7 @@ class _HomePageState extends State<HomePage> {
                   leading: const Icon(Icons.search),
                   title: const Text('Cari Anime'),
                   onTap: () {
-                    context.pop(); 
+                    context.pop(); // Tutup drawer
                     context.go('/search');
                   },
                 ),
@@ -291,15 +288,25 @@ class _Section extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+
+          // --- PERUBAHAN DI SINI ---
+          // Kita kembalikan ke GridView, tapi ganti 'gridDelegate' nya
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: items.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
+            
+            // Ganti dari 'SliverGridDelegateWithFixedCrossAxisCount'
+            // menjadi 'SliverGridDelegateWithMaxCrossAxisExtent'
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              // Ini menentukan lebar MAKSIMAL kartu.
+              // Flutter akan otomatis menampilkan kolom sebanyak mungkin
+              // (misal: 2 di HP sempit, 3 di HP lebar, 5 di tablet, dst.)
+              maxCrossAxisExtent: 130.0,
+              
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 0.62,
+              childAspectRatio: 0.62, // Rasio ini dari kode asli Anda
             ),
             itemBuilder: (context, i) {
               final it = items[i];
@@ -307,6 +314,7 @@ class _Section extends StatelessWidget {
               return AnimeCard(display: display);
             },
           ),
+          // --- PERUBAHAN BERAKHIR DI SINI ---
         ],
       ),
     );
