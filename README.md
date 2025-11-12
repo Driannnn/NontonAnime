@@ -127,5 +127,19 @@ This project is licensed under the MIT License
 Driannnn
 
 ---
+## 🧑‍💻 Tim Kontributor
 
+| NAMA | NIM |
+| ------- | -------- |
+| **[Ello Adrian Hariadi](https://github.com/Driannnn)** | 24111814024 |
+| **[Muhammad Dwi Saputra](https://github.com/POKSI77)** | 24111814080 |
+| **[Izora Elverda Narulita Putri](https://github.com/Elverda)** | 24111814012 |
+| **[Hanna Maulidhea](https://github.com/maulidhea)** | 24111814091 |
+| **[Nama](link github)** | NIM |
+| **[Nama](link github)** | NIM |
+| **[Nama](link github)** | NIM |
+| **[Nama](link github)** | NIM |
+
+
+---
 **Last Updated:** October 31, 2025
