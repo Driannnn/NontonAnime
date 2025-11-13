@@ -138,7 +138,7 @@ Driannnn
 | **[Najwa Chava Safiera](https://github.com/sh3vaya)** | 24111814118 |
 | **[Muhammad Dzikri Azkia Ridwani](https://github.com/azzkiaa)** | 24111814076 |
 | **[Nama](link github)** | NIM |
-| **[Nama](link github)** | NIM |
+| **[Eka Verarina](https://github.com/kaekka)** | 24111814004 |
 
 
 ---
