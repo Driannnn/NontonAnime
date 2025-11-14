@@ -137,7 +137,7 @@ Driannnn
 | **[Hanna Maulidhea](https://github.com/maulidhea)** | 24111814091 |
 | **[Najwa Chava Safiera](https://github.com/sh3vaya)** | 24111814118 |
 | **[Muhammad Dzikri Azkia Ridwani](https://github.com/azzkiaa)** | 24111814076 |
-| **[Nama](link github)** | NIM |
+| **[Muhammad Dzacky Maulana Yahya](https://github.com/LofeYN)** | 24111814127 |
 | **[Eka Verarina](https://github.com/kaekka)** | 24111814004 |
 
 
