@@ -6,6 +6,7 @@ import '../models/comment_models.dart';
 import '../utils/string_utils.dart';
 import '../widgets/common.dart';
 import '../models/anime_models.dart';
+import '../widgets/carousel_slider.dart';
 import 'anime_card.dart';
 import 'genre_list_page.dart';
 
@@ -34,7 +35,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Ekstrak widget profil/user untuk digunakan di actions dan drawer
-  Widget _buildUserProfileWidget(BuildContext context, {bool asDrawerItem = false}) {
+  Widget _buildUserProfileWidget(
+    BuildContext context, {
+    bool asDrawerItem = false,
+  }) {
     final currentUser = _authService.currentUser;
     return StreamBuilder(
       stream: _authService.authStateChanges,
@@ -66,13 +70,12 @@ class _HomePageState extends State<HomePage> {
           builder: (context, userSnapshot) {
             String displayName = '...';
             if (userSnapshot.hasData) {
-              displayName = userSnapshot.data?.username ??
-                  currentUser.email ??
-                  'user';
+              displayName =
+                  userSnapshot.data?.username ?? currentUser.email ?? 'user';
             } else if (userSnapshot.hasError) {
               displayName = 'error';
             }
-            
+
             if (asDrawerItem) {
               return ListTile(
                 leading: const Icon(Icons.person),
@@ -138,7 +141,8 @@ class _HomePageState extends State<HomePage> {
     if (isMobile) {
       // Mobile: actions kosong, biarkan drawer di 'leading' (otomatis)
       appBarActions = [];
-      appBarLeading = null; // Ini akan membuat AppBar otomatis menampilkan ikon hamburger
+      appBarLeading =
+          null; // Ini akan membuat AppBar otomatis menampilkan ikon hamburger
     } else {
       // Desktop: Tampilkan semua aksi navigasi dan ikon 'Tim' di leading
       appBarActions = desktopNavigationActions;
@@ -156,16 +160,11 @@ class _HomePageState extends State<HomePage> {
               padding: EdgeInsets.zero,
               children: <Widget>[
                 DrawerHeader(
-                  decoration: BoxDecoration(
-                    color: cs.primary,
-                  ),
-                  child: const Center( 
+                  decoration: BoxDecoration(color: cs.primary),
+                  child: const Center(
                     child: Text(
-                      'Menu ANIMO', 
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                      ),
+                      'Menu ANIMO',
+                      style: TextStyle(color: Colors.white, fontSize: 24),
                     ),
                   ),
                 ),
@@ -193,7 +192,8 @@ class _HomePageState extends State<HomePage> {
                   onTap: () {
                     context.pop(); // Tutup drawer
                     Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const GenreListPage()));
+                      MaterialPageRoute(builder: (_) => const GenreListPage()),
+                    );
                   },
                 ),
                 ListTile(
@@ -211,7 +211,7 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       backgroundColor: cs.background,
-      drawer: mobileDrawer, 
+      drawer: mobileDrawer,
       appBar: AppBar(
         leading: appBarLeading,
         title: const Text('ANIMO'),
@@ -268,6 +268,11 @@ class _Section extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
+    // Deteksi apakah ini section "Ongoing"
+    final isOngoing =
+        title.toLowerCase().contains('ongoing') ||
+        title.toLowerCase().contains('sedang berlangsung');
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(
@@ -289,36 +294,36 @@ class _Section extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // --- PERUBAHAN DI SINI ---
-          // Kita kembalikan ke GridView, tapi ganti 'gridDelegate' nya
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: items.length,
-            
-            // Ganti dari 'SliverGridDelegateWithFixedCrossAxisCount'
-            // menjadi 'SliverGridDelegateWithMaxCrossAxisExtent'
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              // Ini menentukan lebar MAKSIMAL kartu.
-              // Flutter akan otomatis menampilkan kolom sebanyak mungkin
-              // (misal: 2 di HP sempit, 3 di HP lebar, 5 di tablet, dst.)
-              maxCrossAxisExtent: 130.0,
-              
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 0.62, // Rasio ini dari kode asli Anda
+          // Gunakan carousel untuk section "ongoing", grid untuk yang lain
+          if (isOngoing)
+            Transform.translate(
+              offset: const Offset(-16, 0),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width,
+                child: AnimeCarouselSlider(
+                  items: items.map((it) => AnimeDisplay.fromMap(it)).toList(),
+                ),
+              ),
+            )
+          else
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: items.length,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 130.0,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.62,
+              ),
+              itemBuilder: (context, i) {
+                final it = items[i];
+                final display = AnimeDisplay.fromMap(it);
+                return AnimeCard(display: display);
+              },
             ),
-            itemBuilder: (context, i) {
-              final it = items[i];
-              final display = AnimeDisplay.fromMap(it);
-              return AnimeCard(display: display);
-            },
-          ),
-          // --- PERUBAHAN BERAKHIR DI SINI ---
-
         ],
       ),
     );
-    
   }
 }
