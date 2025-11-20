@@ -44,7 +44,7 @@ String coverProxy(String rawUrl, {int w = 400, int h = 600}) {
   // Format: host:port/path?query
   final noScheme =
       '${u.host}${u.hasPort ? ':${u.port}' : ''}${u.path}${u.hasQuery ? '?${u.query}' : ''}';
-  return 'https://images.weserv.nl/?url=$noScheme';
+  return 'https://proxyello.9july2005.workers.dev/?url=https://$noScheme';
 }
 
 /// Alias untuk getProxyImageUrl (backward compatibility)
