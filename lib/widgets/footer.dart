@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AnimoFooter extends StatelessWidget {
   const AnimoFooter({super.key});
@@ -83,7 +84,7 @@ class AnimoFooter extends StatelessWidget {
                 ),
               ),
 
-              // Connect With Us
+              // Connect With Us - GitHub Only
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,15 +93,18 @@ class AnimoFooter extends StatelessWidget {
                         style: TextStyle(
                             fontWeight: FontWeight.bold, color: textColor)),
                     const SizedBox(height: 15),
-                    Row(
-                      children: [
-                        _buildIcon(FontAwesomeIcons.twitter, iconColor, iconBg),
-                        const SizedBox(width: 15),
-                        _buildIcon(FontAwesomeIcons.discord, iconColor, iconBg),
-                        const SizedBox(width: 15),
-                        _buildIcon(FontAwesomeIcons.instagram, iconColor, iconBg),
-                      ],
-                    )
+                    GestureDetector(
+                      onTap: () async {
+                        final Uri url = Uri.parse('https://github.com/Driannnn/NontonAnime');
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: _buildIcon(FontAwesomeIcons.github, iconColor, iconBg),
+                      ),
+                    ),
                   ],
                 ),
               ),
