@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../core/api_client.dart';
+import '../core/auth_service.dart';
+import '../core/favorite_service.dart';
+import '../core/watch_history_service.dart';
 import '../models/anime_models.dart';
 import '../widgets/common.dart';
 import 'episode_page.dart';
@@ -32,6 +35,10 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   late Future<Map<String, dynamic>> _future;
 
   late String _normalizedSlug;
+
+  final _authService = AuthService();
+  final _favoriteService = FavoriteService();
+  final _watchHistoryService = WatchHistoryService();
 
   @override
   void initState() {
@@ -110,9 +117,17 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          display.title ?? 'No Title',
-                          style: Theme.of(context).textTheme.titleLarge,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                display.title ?? 'No Title',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                            ),
+                            // ❤️ FAVORITE BUTTON
+                            _buildFavoriteButton(context, display),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Wrap(
@@ -181,6 +196,76 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
           );
         },
       ),
+    );
+  }
+
+  // ❤️ Build Favorite Button dengan StreamBuilder
+  Widget _buildFavoriteButton(
+    BuildContext context,
+    AnimeDetailDisplay display,
+  ) {
+    final currentUser = _authService.currentUser;
+
+    if (currentUser == null) {
+      return IconButton(
+        icon: const Icon(Icons.favorite_border),
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Silakan login terlebih dahulu')),
+          );
+        },
+      );
+    }
+
+    return StreamBuilder<bool>(
+      stream: _favoriteService
+          .getFavorites(currentUser.uid)
+          .map(
+            (favorites) => favorites.any((fav) => fav.animeSlug == widget.slug),
+          ),
+      builder: (context, snapshot) {
+        final isFavorited = snapshot.data ?? false;
+
+        return IconButton(
+          icon: Icon(
+            isFavorited ? Icons.favorite : Icons.favorite_border,
+            color: isFavorited ? Colors.red : null,
+          ),
+          onPressed: () async {
+            if (isFavorited) {
+              // Hapus dari favorit
+              await _favoriteService.removeFromFavorite(
+                userId: currentUser.uid,
+                animeSlug: widget.slug,
+              );
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${display.title} dihapus dari favorit'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            } else {
+              // Tambah ke favorit
+              await _favoriteService.addToFavorite(
+                userId: currentUser.uid,
+                animeSlug: widget.slug,
+                animeTitle: display.title ?? 'Unknown',
+                animeImage: display.imageUrl,
+              );
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${display.title} ditambahkan ke favorit'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            }
+          },
+        );
+      },
     );
   }
 }

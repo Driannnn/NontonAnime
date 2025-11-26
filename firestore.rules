@@ -27,5 +27,31 @@ service cloud.firestore {
       allow delete: if request.auth.uid == resource.data.userId;
     }
 
+    // Watch History collection
+    match /watch_history/{historyId} {
+      // Hanya user sendiri yang bisa read riwayat tontonannya
+      allow read: if request.auth.uid == resource.data.userId;
+      
+      // Hanya user yang terautentikasi bisa create riwayat tontonan mereka sendiri
+      allow create: if request.auth.uid != null &&
+                       request.resource.data.userId == request.auth.uid;
+      
+      // Hanya pemilik riwayat yang bisa delete
+      allow delete: if request.auth.uid == resource.data.userId;
+    }
+
+    // Favorites collection
+    match /favorites/{favoriteId} {
+      // Hanya user sendiri yang bisa read favorit mereka
+      allow read: if request.auth.uid == resource.data.userId;
+      
+      // Hanya user yang terautentikasi bisa create favorit mereka sendiri
+      allow create: if request.auth.uid != null &&
+                       request.resource.data.userId == request.auth.uid;
+      
+      // Hanya pemilik favorit yang bisa delete
+      allow delete: if request.auth.uid == resource.data.userId;
+    }
+
   }
 }

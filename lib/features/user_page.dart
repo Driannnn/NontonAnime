@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import '../core/auth_service.dart';
+import '../core/watch_history_service.dart';
+import '../core/favorite_service.dart';
 import '../models/comment_models.dart';
 import '../widgets/login_dialog.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../utils/image_proxy_utils.dart';
 
 class UserPage extends StatefulWidget {
   const UserPage({super.key});
@@ -14,6 +18,8 @@ class UserPage extends StatefulWidget {
 class _UserPageState extends State<UserPage> {
   final _authService = AuthService();
   final _commentService = CommentService();
+  final _watchHistoryService = WatchHistoryService();
+  final _favoriteService = FavoriteService();
 
   @override
   Widget build(BuildContext context) {
@@ -162,6 +168,28 @@ class _UserPageState extends State<UserPage> {
               ),
               const SizedBox(height: 24),
 
+              // Riwayat Tontonan
+              Text(
+                'Riwayat Tontonan',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              _buildWatchHistoryWidget(currentUser.uid),
+              const SizedBox(height: 24),
+
+              // Favorit
+              Text(
+                'Favorit',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              _buildFavoritesWidget(currentUser.uid),
+              const SizedBox(height: 24),
+
               // Komentar saya
               Text(
                 'Komentar Saya',
@@ -299,5 +327,262 @@ class _UserPageState extends State<UserPage> {
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }
+  }
+
+  Widget _buildWatchHistoryWidget(String userId) {
+    return StreamBuilder<List<WatchHistory>>(
+      stream: _watchHistoryService.getWatchHistory(userId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('Error: ${snapshot.error}'),
+          );
+        }
+
+        var history = snapshot.data ?? [];
+        final cs = Theme.of(context).colorScheme;
+
+        // Dedup: hanya ambil yang terbaru per anime
+        final Map<String, WatchHistory> uniqueHistory = {};
+        for (final item in history) {
+          if (!uniqueHistory.containsKey(item.animeSlug)) {
+            uniqueHistory[item.animeSlug] = item;
+          }
+        }
+        history = uniqueHistory.values.toList();
+
+        if (history.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Anda belum menonton anime. Mulai menonton sekarang!',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          );
+        }
+
+        return SizedBox(
+          height: 200,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: history.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, idx) {
+              final item = history[idx];
+
+              return GestureDetector(
+                onTap: () => context.go('/anime/${item.animeSlug}'),
+                child: SizedBox(
+                  width: 120,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: item.animeImage != null
+                            ? CachedNetworkImage(
+                                imageUrl: getProxyImageUrl(item.animeImage!),
+                                height: 150,
+                                width: 120,
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => Container(
+                                  height: 150,
+                                  width: 120,
+                                  color: cs.surfaceContainerHighest,
+                                ),
+                                errorWidget: (context, url, error) => Container(
+                                  height: 150,
+                                  width: 120,
+                                  color: cs.surfaceContainerHighest,
+                                  child: Icon(
+                                    Icons.broken_image,
+                                    color: cs.outlineVariant,
+                                  ),
+                                ),
+                              )
+                            : Container(
+                                height: 150,
+                                width: 120,
+                                color: cs.surfaceContainerHighest,
+                                child: Icon(
+                                  Icons.image,
+                                  color: cs.outlineVariant,
+                                ),
+                              ),
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.animeTitle,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFavoritesWidget(String userId) {
+    return StreamBuilder<List<Favorite>>(
+      stream: _favoriteService.getFavorites(userId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('Error: ${snapshot.error}'),
+          );
+        }
+
+        final favorites = snapshot.data ?? [];
+        final cs = Theme.of(context).colorScheme;
+
+        if (favorites.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Anda belum memiliki favorit. Tambahkan anime favorit Anda!',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          );
+        }
+
+        return SizedBox(
+          height: 200,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: favorites.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, idx) {
+              final item = favorites[idx];
+
+              return GestureDetector(
+                onTap: () => context.go('/anime/${item.animeSlug}'),
+                child: SizedBox(
+                  width: 120,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: item.animeImage != null
+                                ? CachedNetworkImage(
+                                    imageUrl: getProxyImageUrl(
+                                      item.animeImage!,
+                                    ),
+                                    height: 150,
+                                    width: 120,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => Container(
+                                      height: 150,
+                                      width: 120,
+                                      color: cs.surfaceContainerHighest,
+                                    ),
+                                    errorWidget: (context, url, error) =>
+                                        Container(
+                                          height: 150,
+                                          width: 120,
+                                          color: cs.surfaceContainerHighest,
+                                          child: Icon(
+                                            Icons.broken_image,
+                                            color: cs.outlineVariant,
+                                          ),
+                                        ),
+                                  )
+                                : Container(
+                                    height: 150,
+                                    width: 120,
+                                    color: cs.surfaceContainerHighest,
+                                    child: Icon(
+                                      Icons.image,
+                                      color: cs.outlineVariant,
+                                    ),
+                                  ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () async {
+                                await _favoriteService.removeFromFavorite(
+                                  userId: userId,
+                                  animeSlug: item.animeSlug,
+                                );
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '${item.animeTitle} dihapus dari favorit',
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: cs.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                                padding: const EdgeInsets.all(4),
+                                child: const Icon(
+                                  Icons.favorite,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: Text(
+                          item.animeTitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
   }
 }

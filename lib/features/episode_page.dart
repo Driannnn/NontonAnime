@@ -4,6 +4,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/api_client.dart';
+import '../core/auth_service.dart';
+import '../core/watch_history_service.dart';
 import '../models/anime_models.dart';
 import '../widgets/common.dart';
 import '../utils/web_iframe.dart';
@@ -24,6 +26,9 @@ class _EpisodePageState extends State<EpisodePage> {
   WebViewController? _webCtrl;
   String? _iframeViewType;
   String? _currentEpisodeSlug;
+
+  final _authService = AuthService();
+  final _watchHistoryService = WatchHistoryService();
 
   @override
   void initState() {
@@ -214,6 +219,9 @@ class _EpisodePageState extends State<EpisodePage> {
             });
           }
 
+          // 📺 Track watch history ketika episode dibuka
+          _trackWatchHistory(display);
+
           final downloads = display.directStreams
               .where((e) => e.isDownload)
               .toList();
@@ -378,5 +386,34 @@ class _EpisodePageState extends State<EpisodePage> {
         },
       ),
     );
+  }
+
+  // 📺 Track watch history
+  void _trackWatchHistory(EpisodeDetailDisplay display) {
+    final currentUser = _authService.currentUser;
+
+    if (currentUser == null) {
+      return; // Skip jika user belum login
+    }
+
+    // Gunakan WidgetsBinding untuk menghindari error "during build"
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+
+      try {
+        await _watchHistoryService.addWatchHistory(
+          userId: currentUser.uid,
+          animeSlug: widget.episodeSlug.split('/').first, // Extract anime slug
+          animeTitle: widget.titleFallback ?? 'Unknown',
+          episodeSlug: widget.episodeSlug,
+          episodeTitle: display.title,
+        );
+        debugPrint(
+          '✅ Watch history recorded for episode: ${widget.episodeSlug}',
+        );
+      } catch (e) {
+        debugPrint('❌ Error recording watch history: $e');
+      }
+    });
   }
 }
