@@ -7,6 +7,7 @@ import '../utils/string_utils.dart';
 import '../widgets/common.dart';
 import '../models/anime_models.dart';
 import '../widgets/carousel_slider.dart';
+import '../widgets/paginated_completed_section.dart';
 import 'anime_card.dart';
 import 'genre_list_page.dart';
 
@@ -113,11 +114,6 @@ class _HomePageState extends State<HomePage> {
     final List<Widget> desktopNavigationActions = [
       _buildUserProfileWidget(context),
       IconButton(
-        icon: const Icon(Icons.check_circle_outline),
-        tooltip: 'Anime Tamat',
-        onPressed: () => context.go('/completed'),
-      ),
-      IconButton(
         icon: const Icon(Icons.category_outlined),
         tooltip: 'Genre',
         onPressed: () {
@@ -178,14 +174,6 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
                 const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.check_circle_outline),
-                  title: const Text('Anime Tamat'),
-                  onTap: () {
-                    context.pop(); // Tutup drawer
-                    context.go('/completed');
-                  },
-                ),
                 ListTile(
                   leading: const Icon(Icons.category_outlined),
                   title: const Text('Genre'),
@@ -273,6 +261,11 @@ class _Section extends StatelessWidget {
         title.toLowerCase().contains('ongoing') ||
         title.toLowerCase().contains('sedang berlangsung');
 
+    // Deteksi apakah ini section "Data Complete Anime"
+    final isCompleted =
+        title.toLowerCase().contains('complete') ||
+        title.toLowerCase().contains('tamat');
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 24),
       child: Column(
@@ -294,8 +287,10 @@ class _Section extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Gunakan carousel untuk section "ongoing", grid untuk yang lain
-          if (isOngoing)
+          // Gunakan PaginatedCompletedSection untuk "complete", carousel untuk "ongoing", grid untuk lainnya
+          if (isCompleted)
+            PaginatedCompletedSection(title: title)
+          else if (isOngoing)
             Transform.translate(
               offset: const Offset(-16, 0),
               child: SizedBox(

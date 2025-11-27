@@ -11,11 +11,16 @@ import '../utils/image_proxy_utils.dart';
 class GenreAnimePage extends StatefulWidget {
   final String genreName;
   final String genreSlug;
+  final String?
+  source; // 'detail' untuk dari detail anime, null untuk dari genre list
+  final String? animeSlug; // slug anime yang sedang dilihat sebelum ke genre
 
   const GenreAnimePage({
     super.key,
     required this.genreName,
     required this.genreSlug,
+    this.source,
+    this.animeSlug,
   });
 
   @override
@@ -122,7 +127,22 @@ class _GenreAnimePageState extends State<GenreAnimePage> {
 
     return Scaffold(
       backgroundColor: cs.background,
-      appBar: AppBar(title: Text(widget.genreName), centerTitle: true),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // If coming from detail page, go back to that detail
+            if (widget.source == 'detail' && widget.animeSlug != null) {
+              context.go('/anime/${widget.animeSlug}');
+            } else {
+              // Otherwise use Navigator.pop() for default behavior
+              Navigator.of(context).pop();
+            }
+          },
+        ),
+        title: Text(widget.genreName),
+        centerTitle: true,
+      ),
       body: Column(
         children: [
           // main content

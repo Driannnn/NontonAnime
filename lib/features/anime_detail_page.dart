@@ -159,10 +159,14 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                                 label: Text(g),
                                 avatar: const Icon(Icons.local_offer, size: 16),
                                 onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Genre: $g')),
+                                  // Convert genre name to slug (lowercase, replace spaces with dash)
+                                  final genreSlug = g.toLowerCase().replaceAll(
+                                    RegExp(r'\s+'),
+                                    '-',
                                   );
-                                  // TODO: arahkan ke halaman filter / search genre jika diperlukan
+                                  context.go(
+                                    '/genre/$genreSlug?name=$g&source=detail&animeSlug=${widget.slug}',
+                                  );
                                 },
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(20),

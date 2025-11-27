@@ -42,6 +42,7 @@ String coverProxy(String rawUrl, {int w = 400, int h = 600}) {
 
   // Gunakan Weserv untuk proxy + optimization
   // Format: host:port/path?query
+  // jika pakai android hapus https://proxello.9july2005.workers.dev/?url=
   final noScheme =
       '${u.host}${u.hasPort ? ':${u.port}' : ''}${u.path}${u.hasQuery ? '?${u.query}' : ''}';
   return 'https://proxyello.9july2005.workers.dev/?url=https://$noScheme';
