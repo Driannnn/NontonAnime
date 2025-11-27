@@ -45,7 +45,7 @@ String coverProxy(String rawUrl, {int w = 400, int h = 600}) {
   // jika pakai android hapus https://proxello.9july2005.workers.dev/?url=
   final noScheme =
       '${u.host}${u.hasPort ? ':${u.port}' : ''}${u.path}${u.hasQuery ? '?${u.query}' : ''}';
-  return 'https://$noScheme';
+  return 'https://proxyello.9july2005.workers.dev/?url=https://$noScheme';
 }
 
 /// Alias untuk getProxyImageUrl (backward compatibility)
