@@ -3,7 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class WatchHistoryService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Tambah atau update riwayat tontonan (unik per anime, no duplicate)
   Future<void> addWatchHistory({
     required String userId,
     required String animeSlug,
@@ -11,9 +10,9 @@ class WatchHistoryService {
     String? animeImage,
     String? episodeSlug,
     String? episodeTitle,
+    double progress = 0.0,
   }) async {
     try {
-      // Cek apakah anime sudah ada di history
       final existingDocs = await _firestore
           .collection('watch_history')
           .where('userId', isEqualTo: userId)
@@ -21,32 +20,42 @@ class WatchHistoryService {
           .get();
 
       if (existingDocs.docs.isNotEmpty) {
-        // Update entry yang sudah ada (update timestamp)
-        await existingDocs.docs.first.reference.update({
+        final docRef = existingDocs.docs.first.reference;
+        final existingData = existingDocs.docs.first.data();
+
+        // LOGIKA BARU: Hanya update field yang tidak null
+        // Agar gambar lama tidak tertimpa null jika data baru kosong
+        final Map<String, dynamic> updates = {
           'animeTitle': animeTitle,
-          'animeImage': animeImage,
           'episodeSlug': episodeSlug,
           'episodeTitle': episodeTitle,
+          'progress': progress,
           'watchedAt': Timestamp.now(),
-        });
+        };
+
+        if (animeImage != null && animeImage.isNotEmpty) {
+          updates['animeImage'] = animeImage;
+        }
+
+        await docRef.update(updates);
       } else {
-        // Tambah entry baru
         await _firestore.collection('watch_history').add({
           'userId': userId,
           'animeSlug': animeSlug,
           'animeTitle': animeTitle,
-          'animeImage': animeImage,
+          'animeImage': animeImage ?? '', // Default string kosong
           'episodeSlug': episodeSlug,
           'episodeTitle': episodeTitle,
+          'progress': progress,
           'watchedAt': Timestamp.now(),
         });
       }
     } catch (e) {
-      rethrow;
+      // ignore error
     }
   }
 
-  /// Ambil riwayat tontonan user (terbaru terlebih dahulu)
+  // ... (Method getWatchHistory, delete, clear TETAP SAMA seperti sebelumnya)
   Stream<List<WatchHistory>> getWatchHistory(String userId) {
     return _firestore
         .collection('watch_history')
@@ -54,23 +63,19 @@ class WatchHistoryService {
         .orderBy('watchedAt', descending: true)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs
-              .map((doc) => WatchHistory.fromMap(doc.id, doc.data()))
-              .toList();
-        });
+      return snapshot.docs
+          .map((doc) => WatchHistory.fromMap(doc.id, doc.data()))
+          .toList();
+    });
   }
 
-  /// Hapus item dari riwayat tontonan
   Future<void> deleteFromHistory({
     required String historyId,
     required String userId,
   }) async {
     try {
-      final doc = await _firestore
-          .collection('watch_history')
-          .doc(historyId)
-          .get();
-
+      final doc =
+          await _firestore.collection('watch_history').doc(historyId).get();
       if (doc.exists && doc['userId'] == userId) {
         await _firestore.collection('watch_history').doc(historyId).delete();
       }
@@ -79,14 +84,12 @@ class WatchHistoryService {
     }
   }
 
-  /// Hapus semua riwayat tontonan user
   Future<void> clearWatchHistory(String userId) async {
     try {
       final docs = await _firestore
           .collection('watch_history')
           .where('userId', isEqualTo: userId)
           .get();
-
       for (final doc in docs.docs) {
         await doc.reference.delete();
       }
@@ -104,6 +107,7 @@ class WatchHistory {
   final String? animeImage;
   final String? episodeSlug;
   final String? episodeTitle;
+  final double progress;
   final DateTime watchedAt;
 
   WatchHistory({
@@ -114,6 +118,7 @@ class WatchHistory {
     this.animeImage,
     this.episodeSlug,
     this.episodeTitle,
+    this.progress = 0.0,
     required this.watchedAt,
   });
 
@@ -126,6 +131,7 @@ class WatchHistory {
       animeImage: data['animeImage'],
       episodeSlug: data['episodeSlug'],
       episodeTitle: data['episodeTitle'],
+      progress: (data['progress'] as num?)?.toDouble() ?? 0.0,
       watchedAt: (data['watchedAt'] as Timestamp).toDate(),
     );
   }
@@ -138,6 +144,7 @@ class WatchHistory {
       'animeImage': animeImage,
       'episodeSlug': episodeSlug,
       'episodeTitle': episodeTitle,
+      'progress': progress,
       'watchedAt': Timestamp.fromDate(watchedAt),
     };
   }

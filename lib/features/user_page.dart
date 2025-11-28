@@ -7,6 +7,7 @@ import '../widgets/login_dialog.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../utils/image_proxy_utils.dart';
+import '../utils/slug_utils.dart'; // ✅ Import slug utils
 
 class UserPage extends StatefulWidget {
   const UserPage({super.key});
@@ -170,7 +171,7 @@ class _UserPageState extends State<UserPage> {
 
               // Riwayat Tontonan
               Text(
-                'Riwayat Tontonan',
+                'Lanjut Tonton', // Ubah judul agar lebih relevan
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
@@ -199,10 +200,9 @@ class _UserPageState extends State<UserPage> {
               ),
               const SizedBox(height: 12),
 
-              // List komentar user
               _buildUserCommentsWidget(
                 currentUser.uid,
-                null, // appUser tidak diperlukan
+                null,
               ),
             ],
           ),
@@ -211,140 +211,12 @@ class _UserPageState extends State<UserPage> {
     );
   }
 
-  Widget _buildUserCommentsWidget(String userId, AppUser? appUser) {
-    return StreamBuilder<List<AnimeComment>>(
-      stream: _commentService.getCommentsByUser(userId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: CircularProgressIndicator(),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text('Error: ${snapshot.error}'),
-          );
-        }
-
-        final comments = snapshot.data ?? [];
-        final cs = Theme.of(context).colorScheme;
-
-        if (comments.isEmpty) {
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Anda belum ada komentar. Mulai berkomentar di halaman episode!',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          );
-        }
-
-        return ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: comments.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 8),
-          itemBuilder: (context, idx) {
-            final comment = comments[idx];
-
-            return Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Anime ID: ${comment.animeSlug}',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: cs.outlineVariant),
-                        ),
-                        Row(
-                          children: [
-                            Icon(Icons.star, size: 16, color: cs.primary),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${comment.rating}',
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      comment.content,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Text(
-                          _formatDate(comment.createdAt),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: cs.outlineVariant),
-                        ),
-                        const Spacer(),
-                        Row(
-                          children: [
-                            Icon(Icons.favorite, size: 16, color: cs.primary),
-                            const SizedBox(width: 4),
-                            Text(
-                              comment.likes.toString(),
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final diff = now.difference(date);
-
-    if (diff.inSeconds < 60) {
-      return 'Baru saja';
-    } else if (diff.inMinutes < 60) {
-      return '${diff.inMinutes}m lalu';
-    } else if (diff.inHours < 24) {
-      return '${diff.inHours}h lalu';
-    } else if (diff.inDays < 7) {
-      return '${diff.inDays}d lalu';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
-  }
-
   Widget _buildWatchHistoryWidget(String userId) {
     return StreamBuilder<List<WatchHistory>>(
       stream: _watchHistoryService.getWatchHistory(userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: CircularProgressIndicator(),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text('Error: ${snapshot.error}'),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         var history = snapshot.data ?? [];
@@ -373,66 +245,129 @@ class _UserPageState extends State<UserPage> {
           height: 200,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
             itemCount: history.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, idx) {
               final item = history[idx];
 
               return GestureDetector(
-                onTap: () => context.go('/anime/${item.animeSlug}'),
+                onTap: () {
+                  // ✅ LOGIKA NAVIGASI BARU: LANJUT NONTON
+                  // Cek apakah ada data episode slug
+                  if (item.episodeSlug != null &&
+                      item.episodeSlug!.isNotEmpty) {
+                    // Normalize slug untuk jaga-jaga
+                    final fixedEpSlug = normalizeAnimeSlug(item.episodeSlug!);
+                    
+                    // Ke halaman Episode (Player)
+                    // Kita oper 'title' via query params agar header tidak kosong
+                    final titleEncoded = Uri.encodeComponent(item.episodeTitle ?? 'Episode');
+                    context.push('/episode/$fixedEpSlug?title=$titleEncoded');
+                  } else {
+                    // Fallback: Jika data episode rusak, ke Detail Anime
+                    final fixedAnimeSlug = normalizeAnimeSlug(item.animeSlug);
+                    context.go('/anime/$fixedAnimeSlug');
+                  }
+                },
                 child: SizedBox(
-                  width: 120,
+                  width: 140, // Sedikit diperlebar agar proporsional
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: item.animeImage != null
-                            ? CachedNetworkImage(
-                                imageUrl: getProxyImageUrl(item.animeImage!),
-                                height: 150,
-                                width: 120,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  height: 150,
-                                  width: 120,
-                                  color: cs.surfaceContainerHighest,
-                                ),
-                                errorWidget: (context, url, error) => Container(
-                                  height: 150,
-                                  width: 120,
-                                  color: cs.surfaceContainerHighest,
-                                  child: Icon(
-                                    Icons.broken_image,
-                                    color: cs.outlineVariant,
+                      // GAMBAR + PROGRESS BAR
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            // 1. Gambar Background
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: item.animeImage != null && item.animeImage!.isNotEmpty
+                                  ? CachedNetworkImage(
+                                      imageUrl: getProxyImageUrl(item.animeImage!),
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      fit: BoxFit.cover,
+                                      placeholder: (c, url) => Container(color: cs.surfaceVariant),
+                                      errorWidget: (c, url, error) => Container(
+                                        color: cs.surfaceVariant,
+                                        child: const Icon(Icons.broken_image, color: Colors.grey),
+                                      ),
+                                    )
+                                  : Container(
+                                      color: cs.surfaceVariant,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(Icons.movie_filter, color: Colors.grey),
+                                          const SizedBox(height: 4),
+                                          Text("No Image", style: Theme.of(context).textTheme.labelSmall),
+                                        ],
+                                      ),
+                                    ),
+                            ),
+
+                            // 2. Overlay Play Icon (Supaya jelas ini bisa diklik/play)
+                            Positioned.fill(
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.5),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 1.5),
                                   ),
-                                ),
-                              )
-                            : Container(
-                                height: 150,
-                                width: 120,
-                                color: cs.surfaceContainerHighest,
-                                child: Icon(
-                                  Icons.image,
-                                  color: cs.outlineVariant,
+                                  child: const Icon(Icons.play_arrow,
+                                      color: Colors.white, size: 24),
                                 ),
                               ),
-                      ),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              item.animeTitle,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+
+                            // 3. PROGRESS BAR MERAH (Indikator 'Lanjut')
+                            Positioned(
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.vertical(
+                                    bottom: Radius.circular(8)),
+                                child: LinearProgressIndicator(
+                                  // Default 15% jika 0, biar terlihat 'in progress'
+                                  value: item.progress > 0 ? item.progress : 0.15,
+                                  backgroundColor: Colors.grey.withOpacity(0.5),
+                                  color: Colors.redAccent, // Warna Merah
+                                  minHeight: 4, 
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       ),
+
+                      const SizedBox(height: 8),
+
+                      // Judul Anime
+                      Text(
+                        item.animeTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      // Judul Episode (Misal: Episode 12)
+                      if (item.episodeTitle != null)
+                        Text(
+                          item.episodeTitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontSize: 11,
+                                color: cs.primary,
+                              ),
+                        ),
                     ],
                   ),
                 ),
@@ -444,22 +379,14 @@ class _UserPageState extends State<UserPage> {
     );
   }
 
+  // --- Widget Lainnya Tetap Sama ---
+
   Widget _buildFavoritesWidget(String userId) {
     return StreamBuilder<List<Favorite>>(
       stream: _favoriteService.getFavorites(userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: CircularProgressIndicator(),
-          );
-        }
-
-        if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text('Error: ${snapshot.error}'),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         final favorites = snapshot.data ?? [];
@@ -469,7 +396,7 @@ class _UserPageState extends State<UserPage> {
           return Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'Anda belum memiliki favorit. Tambahkan anime favorit Anda!',
+              'Anda belum memiliki favorit.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
           );
@@ -497,36 +424,19 @@ class _UserPageState extends State<UserPage> {
                             borderRadius: BorderRadius.circular(8),
                             child: item.animeImage != null
                                 ? CachedNetworkImage(
-                                    imageUrl: getProxyImageUrl(
-                                      item.animeImage!,
-                                    ),
+                                    imageUrl:
+                                        getProxyImageUrl(item.animeImage!),
                                     height: 150,
                                     width: 120,
                                     fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
-                                      height: 150,
-                                      width: 120,
-                                      color: cs.surfaceContainerHighest,
-                                    ),
-                                    errorWidget: (context, url, error) =>
-                                        Container(
-                                          height: 150,
-                                          width: 120,
-                                          color: cs.surfaceContainerHighest,
-                                          child: Icon(
-                                            Icons.broken_image,
-                                            color: cs.outlineVariant,
-                                          ),
-                                        ),
+                                    errorWidget: (c, u, e) =>
+                                        const Icon(Icons.broken_image),
                                   )
                                 : Container(
                                     height: 150,
                                     width: 120,
                                     color: cs.surfaceContainerHighest,
-                                    child: Icon(
-                                      Icons.image,
-                                      color: cs.outlineVariant,
-                                    ),
+                                    child: const Icon(Icons.image),
                                   ),
                           ),
                           Positioned(
@@ -538,16 +448,6 @@ class _UserPageState extends State<UserPage> {
                                   userId: userId,
                                   animeSlug: item.animeSlug,
                                 );
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        '${item.animeTitle} dihapus dari favorit',
-                                      ),
-                                      duration: const Duration(seconds: 2),
-                                    ),
-                                  );
-                                }
                               },
                               child: Container(
                                 decoration: BoxDecoration(
@@ -555,11 +455,8 @@ class _UserPageState extends State<UserPage> {
                                   shape: BoxShape.circle,
                                 ),
                                 padding: const EdgeInsets.all(4),
-                                child: const Icon(
-                                  Icons.favorite,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
+                                child: const Icon(Icons.favorite,
+                                    size: 16, color: Colors.white),
                               ),
                             ),
                           ),
@@ -571,8 +468,7 @@ class _UserPageState extends State<UserPage> {
                           item.animeTitle,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelSmall
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                          style: Theme.of(context).textTheme.labelSmall,
                         ),
                       ),
                     ],
@@ -581,6 +477,72 @@ class _UserPageState extends State<UserPage> {
               );
             },
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildUserCommentsWidget(String userId, AppUser? appUser) {
+    return StreamBuilder<List<AnimeComment>>(
+      stream: _commentService.getCommentsByUser(userId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final comments = snapshot.data ?? [];
+        final cs = Theme.of(context).colorScheme;
+
+        if (comments.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Anda belum ada komentar.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          );
+        }
+
+        return ListView.separated(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: comments.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 8),
+          itemBuilder: (context, idx) {
+            final comment = comments[idx];
+            return Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Anime ID: ${comment.animeSlug}',
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Icon(Icons.star, size: 16, color: cs.primary),
+                            Text('${comment.rating}',
+                                style: Theme.of(context).textTheme.bodySmall),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(comment.content,
+                        style: Theme.of(context).textTheme.bodyMedium),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
     );

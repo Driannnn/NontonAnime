@@ -38,7 +38,6 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
 
   final _authService = AuthService();
   final _favoriteService = FavoriteService();
-  final _watchHistoryService = WatchHistoryService();
 
   @override
   void initState() {
@@ -159,7 +158,6 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                                 label: Text(g),
                                 avatar: const Icon(Icons.local_offer, size: 16),
                                 onPressed: () {
-                                  // Convert genre name to slug (lowercase, replace spaces with dash)
                                   final genreSlug = g.toLowerCase().replaceAll(
                                     RegExp(r'\s+'),
                                     '-',
@@ -195,7 +193,13 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
               Text('Episodes', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               if (display.episodes.isEmpty) const Text('Belum ada episode.'),
-              ...display.episodes.map((e) => _EpisodeTile(item: e)).toList(),
+              ...display.episodes
+                  .map((e) => _EpisodeTile(
+                        item: e,
+                        animeImageUrl:
+                            display.imageUrl, // ✅ KIRIM IMAGE URL KE SINI
+                      ))
+                  .toList(),
             ],
           );
         },
@@ -237,7 +241,6 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
           ),
           onPressed: () async {
             if (isFavorited) {
-              // Hapus dari favorit
               await _favoriteService.removeFromFavorite(
                 userId: currentUser.uid,
                 animeSlug: widget.slug,
@@ -251,7 +254,6 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                 );
               }
             } else {
-              // Tambah ke favorit
               await _favoriteService.addToFavorite(
                 userId: currentUser.uid,
                 animeSlug: widget.slug,
@@ -276,7 +278,9 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
 
 class _EpisodeTile extends StatelessWidget {
   final EpisodeDisplay item;
-  const _EpisodeTile({required this.item});
+  final String? animeImageUrl; // ✅ TAMBAHKAN PARAMETER INI
+
+  const _EpisodeTile({required this.item, required this.animeImageUrl});
 
   @override
   Widget build(BuildContext context) {
@@ -298,6 +302,8 @@ class _EpisodeTile extends StatelessWidget {
               builder: (_) => EpisodePage(
                 episodeSlug: item.slug!,
                 titleFallback: item.title,
+                animeImageUrl:
+                    animeImageUrl, // ✅ PASSING IMAGE KE EPISODE PAGE
               ),
             ),
           );
