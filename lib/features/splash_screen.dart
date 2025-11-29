@@ -82,8 +82,8 @@ class _SplashScreenState extends State<SplashScreen>
                         // Logo - lebih besar di mobile
                         Image.asset(
                           'assets/logo.gif',
-                          width: isMobile ? 100.w : 65.w,
-                          height: isMobile ? 100.w : 65.w,
+                          width: isMobile ? 100.w : 40.w,
+                          height: isMobile ? 100.w : 40.w,
                           fit: BoxFit.contain,
                         ),
                         const SizedBox(height: 24),
@@ -92,7 +92,7 @@ class _SplashScreenState extends State<SplashScreen>
                         Text(
                           'ANIMO',
                           style: GoogleFonts.cherryBombOne(
-                            fontSize: isMobile ? 9.w : 7.5.sp,
+                            fontSize: isMobile ? 9.w : 5.5.sp,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                             letterSpacing: 1.5,
@@ -104,7 +104,7 @@ class _SplashScreenState extends State<SplashScreen>
                         Text(
                           'Enjoy Watching!',
                           style: GoogleFonts.cherryBombOne(
-                            fontSize: isMobile ? 6.5.w : 5.5.sp,
+                            fontSize: isMobile ? 6.5.w : 4.5.sp,
                             color: Colors.grey.shade700,
                             letterSpacing: 1,
                           ),

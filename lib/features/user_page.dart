@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../core/auth_service.dart';
 import '../core/watch_history_service.dart';
 import '../core/favorite_service.dart';
 import '../models/comment_models.dart';
 import '../widgets/login_dialog.dart';
+import '../widgets/edit_profile_dialog.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../utils/image_proxy_utils.dart';
@@ -22,6 +25,58 @@ class _UserPageState extends State<UserPage> {
   final _commentService = CommentService();
   final _watchHistoryService = WatchHistoryService();
   final _favoriteService = FavoriteService();
+
+  CircleAvatar _defaultAvatar(ColorScheme cs, User currentUser) {
+    return CircleAvatar(
+      radius: 40,
+      backgroundColor: cs.primary,
+      child: Text(
+        (currentUser.email?[0] ?? 'A').toUpperCase(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileAvatar(ColorScheme cs, User currentUser) {
+    return FutureBuilder<AppUser?>(
+      future: _authService.getUser(currentUser.uid),
+      builder: (ctx, snap) {
+        final profileImage = snap.data?.profileImage;
+
+        if (profileImage != null && profileImage.isNotEmpty) {
+          // Handle base64 data URL
+          if (profileImage.startsWith('data:image')) {
+            try {
+              final base64String = profileImage.split(',')[1];
+              final bytes = base64Decode(base64String);
+              return CircleAvatar(
+                radius: 40,
+                backgroundImage: MemoryImage(bytes),
+              );
+            } catch (e) {
+              return _defaultAvatar(cs, currentUser);
+            }
+          }
+          // Handle regular network URL
+          else {
+            return CircleAvatar(
+              radius: 40,
+              backgroundImage: NetworkImage(profileImage),
+              onBackgroundImageError: (exception, stackTrace) {
+                // Fallback jika gagal load
+              },
+            );
+          }
+        }
+
+        return _defaultAvatar(cs, currentUser);
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -122,18 +177,7 @@ class _UserPageState extends State<UserPage> {
                     children: [
                       Row(
                         children: [
-                          CircleAvatar(
-                            radius: 40,
-                            backgroundColor: cs.primary,
-                            child: Text(
-                              (currentUser.email?[0] ?? 'A').toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
+                          _buildProfileAvatar(cs, currentUser),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Column(
@@ -161,6 +205,27 @@ class _UserPageState extends State<UserPage> {
                                 ),
                               ],
                             ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () async {
+                              final user = await _authService.getUser(
+                                currentUser.uid,
+                              );
+                              if (!context.mounted) return;
+
+                              await showDialog(
+                                context: context,
+                                builder: (ctx) => EditProfileDialog(
+                                  currentUsername: user?.username,
+                                  currentProfileImage: user?.profileImage,
+                                ),
+                              ).then((_) {
+                                if (mounted) {
+                                  setState(() {});
+                                }
+                              });
+                            },
                           ),
                         ],
                       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:convert';
 import '../core/api_client.dart';
 import '../core/auth_service.dart';
 import '../models/comment_models.dart';
@@ -70,33 +71,98 @@ class _HomePageState extends State<HomePage> {
           future: _authService.getUser(currentUser.uid),
           builder: (context, userSnapshot) {
             String displayName = '...';
+            String? profileImage;
             if (userSnapshot.hasData) {
               displayName =
                   userSnapshot.data?.username ?? currentUser.email ?? 'user';
+              profileImage = userSnapshot.data?.profileImage;
             } else if (userSnapshot.hasError) {
               displayName = 'error';
             }
 
-            if (asDrawerItem) {
-              return ListTile(
-                leading: const Icon(Icons.person),
-                title: Text(displayName),
-                onTap: () {
-                  context.pop(); // Close drawer
-                  context.go('/profile');
-                },
+            // Helper untuk decode profile image dari base64
+            ImageProvider? buildProfileImageProvider(String? imageUrl) {
+              if (imageUrl == null || imageUrl.isEmpty) {
+                return null;
+              }
+              try {
+                // Handle base64 data URL format: data:image/jpeg;base64,{base64String}
+                if (imageUrl.startsWith('data:image')) {
+                  final base64String = imageUrl.split(',').last;
+                  final bytes = base64Decode(base64String);
+                  return MemoryImage(bytes);
+                }
+                // Fallback untuk URL biasa
+                if (imageUrl.startsWith('http')) {
+                  return NetworkImage(imageUrl);
+                }
+                return null;
+              } catch (e) {
+                return null;
+              }
+            }
+
+            // Helper untuk build profile avatar
+            Widget buildProfileAvatar() {
+              return CircleAvatar(
+                radius: asDrawerItem ? 30 : 16,
+                backgroundColor: Colors.grey[300],
+                backgroundImage: buildProfileImageProvider(profileImage),
+                child: profileImage == null
+                    ? Icon(
+                        Icons.person,
+                        color: Colors.grey[600],
+                        size: asDrawerItem ? 30 : 16,
+                      )
+                    : null,
               );
             }
 
-            return Row(
-              children: [
-                Text(displayName),
-                IconButton(
-                  icon: const Icon(Icons.person),
-                  tooltip: 'Profil',
-                  onPressed: () => context.go('/profile'),
+            if (asDrawerItem) {
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    buildProfileAvatar(),
+                    const SizedBox(height: 12),
+                    Text(
+                      displayName,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        context.pop(); // Close drawer
+                        context.go('/profile');
+                      },
+                      child: const Text('Lihat Profil'),
+                    ),
+                  ],
                 ),
-              ],
+              );
+            }
+
+            return GestureDetector(
+              onTap: profileImage != null ? () => context.go('/profile') : null,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(displayName),
+                  const SizedBox(width: 8),
+                  buildProfileAvatar(),
+                  if (profileImage == null)
+                    IconButton(
+                      icon: const Icon(Icons.person),
+                      tooltip: 'Profil',
+                      onPressed: () => context.go('/profile'),
+                    ),
+                ],
+              ),
             );
           },
         );
@@ -161,12 +227,17 @@ class _HomePageState extends State<HomePage> {
             child: ListView(
               padding: EdgeInsets.zero,
               children: <Widget>[
-                DrawerHeader(
+                Container(
+                  height: 60,
                   decoration: BoxDecoration(color: cs.primary),
                   child: const Center(
                     child: Text(
-                      'Menu ANIMO',
-                      style: TextStyle(color: Colors.white, fontSize: 24),
+                      'Menu',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
