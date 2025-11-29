@@ -51,9 +51,11 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final episodeSlug = state.pathParameters['episodeSlug']!;
         final titleFallback = state.uri.queryParameters['title'];
+        final animeImage = state.uri.queryParameters['animeImage'];
         return EpisodePage(
           episodeSlug: episodeSlug,
           titleFallback: titleFallback,
+          animeImageUrl: animeImage,
         );
       },
     ),

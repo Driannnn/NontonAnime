@@ -7,7 +7,8 @@ import '../widgets/login_dialog.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../utils/image_proxy_utils.dart';
-import '../utils/slug_utils.dart'; // ✅ Import slug utils
+import '../utils/slug_utils.dart';
+import '../widgets/common.dart';
 
 class UserPage extends StatefulWidget {
   const UserPage({super.key});
@@ -200,10 +201,7 @@ class _UserPageState extends State<UserPage> {
               ),
               const SizedBox(height: 12),
 
-              _buildUserCommentsWidget(
-                currentUser.uid,
-                null,
-              ),
+              _buildUserCommentsWidget(currentUser.uid, null),
             ],
           ),
         );
@@ -259,11 +257,18 @@ class _UserPageState extends State<UserPage> {
                       item.episodeSlug!.isNotEmpty) {
                     // Normalize slug untuk jaga-jaga
                     final fixedEpSlug = normalizeAnimeSlug(item.episodeSlug!);
-                    
+
                     // Ke halaman Episode (Player)
-                    // Kita oper 'title' via query params agar header tidak kosong
-                    final titleEncoded = Uri.encodeComponent(item.episodeTitle ?? 'Episode');
-                    context.push('/episode/$fixedEpSlug?title=$titleEncoded');
+                    // Kita oper 'title' dan 'animeImage' via query params
+                    final titleEncoded = Uri.encodeComponent(
+                      item.episodeTitle ?? 'Episode',
+                    );
+                    final imageEncoded = Uri.encodeComponent(
+                      item.animeImage ?? '',
+                    );
+                    context.push(
+                      '/episode/$fixedEpSlug?title=$titleEncoded&animeImage=$imageEncoded',
+                    );
                   } else {
                     // Fallback: Jika data episode rusak, ke Detail Anime
                     final fixedAnimeSlug = normalizeAnimeSlug(item.animeSlug);
@@ -282,28 +287,36 @@ class _UserPageState extends State<UserPage> {
                             // 1. Gambar Background
                             ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: item.animeImage != null && item.animeImage!.isNotEmpty
+                              child: (item.animeImage?.isNotEmpty ?? false)
                                   ? CachedNetworkImage(
-                                      imageUrl: getProxyImageUrl(item.animeImage!),
+                                      imageUrl: coverProxy(item.animeImage!),
                                       width: double.infinity,
                                       height: double.infinity,
                                       fit: BoxFit.cover,
-                                      placeholder: (c, url) => Container(color: cs.surfaceVariant),
+                                      placeholder: (c, url) =>
+                                          const ShimmerBox(),
                                       errorWidget: (c, url, error) => Container(
                                         color: cs.surfaceVariant,
-                                        child: const Icon(Icons.broken_image, color: Colors.grey),
+                                        child: const Icon(
+                                          Icons.broken_image,
+                                          color: Colors.grey,
+                                        ),
                                       ),
                                     )
                                   : Container(
                                       color: cs.surfaceVariant,
                                       width: double.infinity,
                                       height: double.infinity,
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                      child: const Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
-                                          const Icon(Icons.movie_filter, color: Colors.grey),
-                                          const SizedBox(height: 4),
-                                          Text("No Image", style: Theme.of(context).textTheme.labelSmall),
+                                          Icon(
+                                            Icons.movie_filter,
+                                            color: Colors.grey,
+                                          ),
+                                          SizedBox(height: 4),
+                                          Text("No Image"),
                                         ],
                                       ),
                                     ),
@@ -317,10 +330,16 @@ class _UserPageState extends State<UserPage> {
                                   decoration: BoxDecoration(
                                     color: Colors.black.withOpacity(0.5),
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 1.5),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
                                   ),
-                                  child: const Icon(Icons.play_arrow,
-                                      color: Colors.white, size: 24),
+                                  child: const Icon(
+                                    Icons.play_arrow,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
                                 ),
                               ),
                             ),
@@ -332,13 +351,16 @@ class _UserPageState extends State<UserPage> {
                               right: 0,
                               child: ClipRRect(
                                 borderRadius: const BorderRadius.vertical(
-                                    bottom: Radius.circular(8)),
+                                  bottom: Radius.circular(8),
+                                ),
                                 child: LinearProgressIndicator(
                                   // Default 15% jika 0, biar terlihat 'in progress'
-                                  value: item.progress > 0 ? item.progress : 0.15,
+                                  value: item.progress > 0
+                                      ? item.progress
+                                      : 0.15,
                                   backgroundColor: Colors.grey.withOpacity(0.5),
                                   color: Colors.redAccent, // Warna Merah
-                                  minHeight: 4, 
+                                  minHeight: 4,
                                 ),
                               ),
                             ),
@@ -353,9 +375,8 @@ class _UserPageState extends State<UserPage> {
                         item.animeTitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       // Judul Episode (Misal: Episode 12)
                       if (item.episodeTitle != null)
@@ -363,10 +384,8 @@ class _UserPageState extends State<UserPage> {
                           item.episodeTitle!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                fontSize: 11,
-                                color: cs.primary,
-                              ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(fontSize: 11, color: cs.primary),
                         ),
                     ],
                   ),
@@ -424,11 +443,11 @@ class _UserPageState extends State<UserPage> {
                             borderRadius: BorderRadius.circular(8),
                             child: item.animeImage != null
                                 ? CachedNetworkImage(
-                                    imageUrl:
-                                        getProxyImageUrl(item.animeImage!),
+                                    imageUrl: coverProxy(item.animeImage!),
                                     height: 150,
                                     width: 120,
                                     fit: BoxFit.cover,
+                                    placeholder: (c, url) => const ShimmerBox(),
                                     errorWidget: (c, u, e) =>
                                         const Icon(Icons.broken_image),
                                   )
@@ -455,8 +474,11 @@ class _UserPageState extends State<UserPage> {
                                   shape: BoxShape.circle,
                                 ),
                                 padding: const EdgeInsets.all(4),
-                                child: const Icon(Icons.favorite,
-                                    size: 16, color: Colors.white),
+                                child: const Icon(
+                                  Icons.favorite,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
                               ),
                             ),
                           ),
@@ -529,15 +551,19 @@ class _UserPageState extends State<UserPage> {
                         Row(
                           children: [
                             Icon(Icons.star, size: 16, color: cs.primary),
-                            Text('${comment.rating}',
-                                style: Theme.of(context).textTheme.bodySmall),
+                            Text(
+                              '${comment.rating}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
                           ],
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(comment.content,
-                        style: Theme.of(context).textTheme.bodyMedium),
+                    Text(
+                      comment.content,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
                   ],
                 ),
               ),
