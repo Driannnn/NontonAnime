@@ -61,25 +61,46 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
       // Deteksi platform dengan aman tanpa import dart:io di web
       if (!kIsWeb) {
         try {
-          // Try to request permission - only works on mobile/desktop with permission_handler
-          final status = await Permission.photos.request();
+          // Request permission untuk photos
+          PermissionStatus status = await Permission.photos.request();
 
+          // Jika permission pending/not determined, request lagi
+          if (status.isDenied) {
+            status = await Permission.photos.request();
+          }
+
+          // Check status setelah request
           if (status.isDenied) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Izin galeri ditolak')),
+                const SnackBar(
+                  content: Text('Izin galeri ditolak. Silakan coba lagi.'),
+                ),
               );
             }
             return;
           }
 
           if (status.isPermanentlyDenied) {
-            openAppSettings();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Izin ditolak permanen. Buka pengaturan aplikasi.',
+                  ),
+                ),
+              );
+            }
+            await openAppSettings();
             return;
           }
+
+          if (status.isGranted || status.isLimited) {
+            // Permission granted, proceed dengan image picker
+          }
         } catch (e) {
-          // Permission handler might not be available on some platforms
-          // Just continue with image picker
+          // Permission handler error - continue with image picker anyway
+          // Some devices might not have proper permission support
         }
       }
 

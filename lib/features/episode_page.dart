@@ -34,7 +34,7 @@ class _EpisodePageState extends State<EpisodePage> {
   WebViewController? _webCtrl;
   String? _iframeViewType;
   String? _currentEpisodeSlug;
-  
+
   // ✅ Variabel untuk Timer Progress
   Timer? _progressTimer;
   double _currentProgress = 0.05; // Mulai dari 5%
@@ -47,7 +47,7 @@ class _EpisodePageState extends State<EpisodePage> {
     super.initState();
     _currentEpisodeSlug = widget.episodeSlug;
     _future = fetchEpisodeDetail(_currentEpisodeSlug!);
-    
+
     // ✅ Mulai tracking waktu
     _startProgressTracking();
   }
@@ -64,8 +64,8 @@ class _EpisodePageState extends State<EpisodePage> {
     _progressTimer?.cancel();
     _progressTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (!mounted) return;
-      
-      // Asumsi 1 episode = 24 menit. 
+
+      // Asumsi 1 episode = 24 menit.
       // 30 detik = ~2% progress (0.02)
       setState(() {
         _currentProgress += 0.02;
@@ -88,7 +88,8 @@ class _EpisodePageState extends State<EpisodePage> {
         animeTitle: widget.titleFallback ?? 'Unknown',
         animeImage: widget.animeImageUrl,
         episodeSlug: _currentEpisodeSlug,
-        episodeTitle: display?.title ?? widget.titleFallback, // Pakai title yang ada
+        episodeTitle:
+            display?.title ?? widget.titleFallback, // Pakai title yang ada
         progress: _currentProgress,
       );
     } catch (_) {}
@@ -137,7 +138,7 @@ class _EpisodePageState extends State<EpisodePage> {
     }
     return true;
   }
-  
+
   Widget _buildPlayerFallback(BuildContext context, String? streamUrl) {
     return Center(
       child: Column(
@@ -177,7 +178,7 @@ class _EpisodePageState extends State<EpisodePage> {
       _iframeViewType = null;
       _future = fetchEpisodeDetail(slug);
       // Reset progress untuk episode baru
-      _currentProgress = 0.05; 
+      _currentProgress = 0.05;
     });
   }
 
@@ -221,7 +222,9 @@ class _EpisodePageState extends State<EpisodePage> {
           final mainStream = _pickMainStream(display);
           final streamUrl = mainStream?.url?.trim();
           final canLoadInWebView =
-              streamUrl != null && streamUrl.isNotEmpty && _isEmbedUrl(streamUrl);
+              streamUrl != null &&
+              streamUrl.isNotEmpty &&
+              _isEmbedUrl(streamUrl);
 
           if (canLoadInWebView && _webCtrl == null && _iframeViewType == null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -235,7 +238,7 @@ class _EpisodePageState extends State<EpisodePage> {
           // ✅ Panggil update history awal saat load berhasil
           // Menggunakan postFrameCallback agar tidak error saat build
           WidgetsBinding.instance.addPostFrameCallback((_) {
-             _updateHistoryToDB(display: display);
+            _updateHistoryToDB(display: display);
           });
 
           final downloads = display.directStreams
@@ -256,11 +259,11 @@ class _EpisodePageState extends State<EpisodePage> {
                   clipBehavior: Clip.antiAlias,
                   child: kIsWeb
                       ? (_iframeViewType == null
-                          ? _buildPlayerFallback(context, streamUrl)
-                          : HtmlElementView(viewType: _iframeViewType!))
+                            ? _buildPlayerFallback(context, streamUrl)
+                            : HtmlElementView(viewType: _iframeViewType!))
                       : (_webCtrl == null
-                          ? _buildPlayerFallback(context, streamUrl)
-                          : WebViewWidget(controller: _webCtrl!)),
+                            ? _buildPlayerFallback(context, streamUrl)
+                            : WebViewWidget(controller: _webCtrl!)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -280,7 +283,8 @@ class _EpisodePageState extends State<EpisodePage> {
                         const SizedBox(height: 8),
                         SelectableText(
                           streamUrl,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
                                 color: Colors.blue,
                                 decoration: TextDecoration.underline,
                               ),
@@ -296,8 +300,8 @@ class _EpisodePageState extends State<EpisodePage> {
                   child: Text(
                     display.title!,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
 
@@ -316,14 +320,58 @@ class _EpisodePageState extends State<EpisodePage> {
                       onTap: () async {
                         if (d.url != null && d.url!.isNotEmpty) {
                           try {
-                            final uri = Uri.parse(d.url!);
+                            // Sanitize URL - ensure it has proper scheme
+                            String urlToLaunch = d.url!.trim();
+                            if (!urlToLaunch.startsWith('http://') &&
+                                !urlToLaunch.startsWith('https://')) {
+                              urlToLaunch = 'https://$urlToLaunch';
+                            }
+
+                            final uri = Uri.parse(urlToLaunch);
+
+                            // Check if URL is valid
+                            if (uri.scheme.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('URL tidak valid'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                              return;
+                            }
+
                             if (await canLaunchUrl(uri)) {
                               await launchUrl(
                                 uri,
                                 mode: LaunchMode.externalApplication,
                               );
+                            } else {
+                              // Fallback: try with different mode
+                              try {
+                                await launchUrl(uri);
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Tidak bisa membuka URL: ${e.toString()}',
+                                      ),
+                                      duration: const Duration(seconds: 3),
+                                    ),
+                                  );
+                                }
+                              }
                             }
-                          } catch (_) {}
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: ${e.toString()}'),
+                                  duration: const Duration(seconds: 3),
+                                ),
+                              );
+                            }
+                          }
                         }
                       },
                     ),

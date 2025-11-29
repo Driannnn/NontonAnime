@@ -18,19 +18,26 @@ class AnimeSearchPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return BlocProvider(
-      create: (_) => AnimeSearchCubit(),
-      child: Scaffold(
-        backgroundColor: cs.background,
-        appBar: AppBar(
-          title: const Text('Cari Anime'),
-          centerTitle: true,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.go('/home'),
+    return WillPopScope(
+      onWillPop: () async {
+        // Handle Android back button
+        context.go('/home');
+        return false; // Prevent default back behavior
+      },
+      child: BlocProvider(
+        create: (_) => AnimeSearchCubit(),
+        child: Scaffold(
+          backgroundColor: cs.background,
+          appBar: AppBar(
+            title: const Text('Cari Anime'),
+            centerTitle: true,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => context.go('/home'),
+            ),
           ),
+          body: const _SearchBody(),
         ),
-        body: const _SearchBody(),
       ),
     );
   }

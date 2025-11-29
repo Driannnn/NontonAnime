@@ -160,10 +160,11 @@ class _CommentsSectionState extends State<CommentsSection> {
                   else
                     Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text('Anda harus login untuk berkomentar'),
+                          const SizedBox(height: 8),
                           FilledButton.tonal(
                             onPressed: () async {
                               final result = await showDialog<bool>(

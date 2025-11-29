@@ -45,5 +45,12 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Photo Library Permission for Image Picker -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Aplikasi memerlukan akses ke galeri untuk memilih foto profil</string>
+	<key>NSPhotoLibraryAddOnlyUsageDescription</key>
+	<string>Aplikasi memerlukan akses untuk menyimpan foto</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Aplikasi memerlukan akses ke kamera untuk mengambil foto</string>
 </dict>
 </plist>

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:go_router/go_router.dart';
 
 import '../widgets/common.dart';
 import 'genre_results_page.dart';
@@ -44,23 +46,25 @@ class _GenreListPageState extends State<GenreListPage> {
         raw = data;
       }
 
-      _genres = raw.whereType<Map>().map((m) {
-        final map = Map<String, dynamic>.from(m);
-        final name = map['name']?.toString() ?? map['genre']?.toString();
-        // slug bisa `slug`, atau `path`, atau `url` terakhir
-        String? slug = map['slug']?.toString();
-        if (slug == null || slug.isEmpty) {
-          // coba ekstrak dari url kalau ada
-          final url = map['otakudesu_url']?.toString() ?? map['url']?.toString();
-          if (url != null) {
-            slug = _extractLastSegment(url);
-          }
-        }
-        return _GenreItem(
-          name: name ?? '-',
-          slug: slug ?? '',
-        );
-      }).where((g) => g.slug.isNotEmpty).toList();
+      _genres = raw
+          .whereType<Map>()
+          .map((m) {
+            final map = Map<String, dynamic>.from(m);
+            final name = map['name']?.toString() ?? map['genre']?.toString();
+            // slug bisa `slug`, atau `path`, atau `url` terakhir
+            String? slug = map['slug']?.toString();
+            if (slug == null || slug.isEmpty) {
+              // coba ekstrak dari url kalau ada
+              final url =
+                  map['otakudesu_url']?.toString() ?? map['url']?.toString();
+              if (url != null) {
+                slug = _extractLastSegment(url);
+              }
+            }
+            return _GenreItem(name: name ?? '-', slug: slug ?? '');
+          })
+          .where((g) => g.slug.isNotEmpty)
+          .toList();
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -86,62 +90,54 @@ class _GenreListPageState extends State<GenreListPage> {
 
     return Scaffold(
       backgroundColor: cs.background,
-      appBar: AppBar(
-        title: const Text('Genre'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Genre'), centerTitle: true),
       body: _loading
           ? const CenteredLoading()
           : _error != null
-              ? ErrorView(
-                  message: _error!,
-                  onRetry: _fetchGenres,
-                )
-              : _genres.isEmpty
-                  ? const Center(child: Text('Tidak ada genre.'))
-                  : Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: ListView(
-                        children: [
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: _genres.map((g) {
-                              return InkWell(
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => GenreAnimePage(
-                                        genreName: g.name,
-                                        genreSlug: g.slug,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: cs.secondary.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: cs.secondary.withOpacity(0.4),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    g.name,
-                                    style: TextStyle(
-                                      color: cs.onBackground,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }).toList(),
+          ? ErrorView(message: _error!, onRetry: _fetchGenres)
+          : _genres.isEmpty
+          ? const Center(child: Text('Tidak ada genre.'))
+          : Padding(
+              padding: const EdgeInsets.all(16),
+              child: ListView(
+                children: [
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: _genres.map((g) {
+                      return InkWell(
+                        onTap: () {
+                          // Navigate to genre results
+                          context.go(
+                            '/genre/${g.slug}?name=${Uri.encodeComponent(g.name)}',
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
                           ),
-                        ],
-                      ),
-                    ),
+                          decoration: BoxDecoration(
+                            color: cs.secondary.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: cs.secondary.withOpacity(0.4),
+                            ),
+                          ),
+                          child: Text(
+                            g.name,
+                            style: TextStyle(
+                              color: cs.onBackground,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }

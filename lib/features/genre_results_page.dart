@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
@@ -127,22 +128,7 @@ class _GenreAnimePageState extends State<GenreAnimePage> {
 
     return Scaffold(
       backgroundColor: cs.background,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            // If coming from detail page, go back to that detail
-            if (widget.source == 'detail' && widget.animeSlug != null) {
-              context.go('/anime/${widget.animeSlug}');
-            } else {
-              // Otherwise use Navigator.pop() for default behavior
-              Navigator.of(context).pop();
-            }
-          },
-        ),
-        title: Text(widget.genreName),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text(widget.genreName), centerTitle: true),
       body: Column(
         children: [
           // main content
@@ -186,9 +172,9 @@ class _GenreAnimePageState extends State<GenreAnimePage> {
                             if (normalizedSlug == null ||
                                 normalizedSlug.isEmpty)
                               return;
-                            context.go(
-                              '/anime/$normalizedSlug?source=genre&genreSlug=${widget.genreSlug}&genreName=${widget.genreName}',
-                            );
+                            // Use push on Android, go on desktop
+
+                            context.go('/anime/$normalizedSlug');
                           },
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,

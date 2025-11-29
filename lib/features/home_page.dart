@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:go_router/go_router.dart';
 import 'dart:convert';
 import '../core/api_client.dart';
@@ -182,11 +183,7 @@ class _HomePageState extends State<HomePage> {
       IconButton(
         icon: const Icon(Icons.category_outlined),
         tooltip: 'Genre',
-        onPressed: () {
-          Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const GenreListPage()));
-        },
+        onPressed: () => context.go('/genre'),
       ),
       IconButton(
         icon: const Icon(Icons.search),
@@ -256,9 +253,7 @@ class _HomePageState extends State<HomePage> {
                   title: const Text('Genre'),
                   onTap: () {
                     context.pop(); // Tutup drawer
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const GenreListPage()),
-                    );
+                    context.push('/genre');
                   },
                 ),
               ],

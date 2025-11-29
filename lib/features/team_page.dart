@@ -18,7 +18,8 @@ class _TeamPageState extends State<TeamPage> {
     {
       'name': 'Ello Adrian Hariadi',
       'role': 'CEO & Co-Founder',
-      'description': 'Visionary leader with C2 years in tech innovation and leadership',
+      'description':
+          'Visionary leader with C2 years in tech innovation and leadership',
       'imageUrl': 'https://avatars.githubusercontent.com/u/144525698?v=4',
       'github': 'https://github.com/Driannnn',
       'instagram': 'https://www.instagram.com/elloadrian/',
@@ -34,7 +35,8 @@ class _TeamPageState extends State<TeamPage> {
     {
       'name': 'Izora Elverda Narulita Putri',
       'role': 'Lead Backend',
-      'description': 'Tech-driven solution architect overseeing millions of users globally',
+      'description':
+          'Tech-driven solution architect overseeing millions of users globally',
       'imageUrl': 'https://avatars.githubusercontent.com/u/208224160?v=4',
       'github': 'https://github.com/Elverda',
       'instagram': 'https://www.instagram.com/elverdaputri/',
@@ -42,7 +44,8 @@ class _TeamPageState extends State<TeamPage> {
     {
       'name': 'Hanna Maulidhea',
       'role': 'Product Lead',
-      'description': 'Passionate about building exceptional products that solve real problems',
+      'description':
+          'Passionate about building exceptional products that solve real problems',
       'imageUrl': 'https://avatars.githubusercontent.com/u/207872670?v=4',
       'github': 'https://github.com/maulidhea',
       'instagram': 'https://www.instagram.com/hmaulidheaa/',
@@ -50,7 +53,8 @@ class _TeamPageState extends State<TeamPage> {
     {
       'name': 'Najwa Chava Safiera',
       'role': 'Lead Architect',
-      'description': 'Full-stack engineer expert focused on performance and design',
+      'description':
+          'Full-stack engineer expert focused on performance and design',
       'imageUrl': 'https://avatars.githubusercontent.com/u/181125174?v=4',
       'github': 'https://github.com/sh3vaya',
       'instagram': 'https://www.instagram.com/zoxrgx/',
@@ -58,7 +62,8 @@ class _TeamPageState extends State<TeamPage> {
     {
       'name': 'Muhammad Dzikri Azkia Ridwani',
       'role': 'Security Director',
-      'description': 'Strategic visionary driving growth through data and innovation',
+      'description':
+          'Strategic visionary driving growth through data and innovation',
       'imageUrl': 'https://avatars.githubusercontent.com/u/208134601?v=4',
       'github': 'https://github.com/azzkiaa',
       'instagram': 'https://www.instagram.com/azk_ia.r/',
@@ -66,7 +71,8 @@ class _TeamPageState extends State<TeamPage> {
     {
       'name': 'Muhammad Dzacky Maulana Yahya',
       'role': 'CTO',
-      'description': 'Transforming complex data into actionable insights for better decision making',
+      'description':
+          'Transforming complex data into actionable insights for better decision making',
       'imageUrl': 'https://avatars.githubusercontent.com/u/207881192?v=4',
       'github': 'https://github.com/LofeYN',
       'instagram': 'https://www.instagram.com/mflofee/',
@@ -74,7 +80,8 @@ class _TeamPageState extends State<TeamPage> {
     {
       'name': 'Eka Verarina',
       'role': 'UI/UX Designer',
-      'description': 'Merancang pengalaman dan tampilan sebuah aplikasi atau website agar mudah digunakan, menarik, dan sesuai kebutuhan pengguna.',
+      'description':
+          'Merancang pengalaman dan tampilan sebuah aplikasi atau website agar mudah digunakan, menarik, dan sesuai kebutuhan pengguna.',
       'imageUrl': 'https://avatars.githubusercontent.com/u/201080417?v=4',
       'github': 'https://github.com/kaekka',
       'instagram': 'https://www.instagram.com/e.verra_/',
@@ -84,9 +91,13 @@ class _TeamPageState extends State<TeamPage> {
   List<Map<String, dynamic>> getFilteredTeam() {
     if (searchQuery.isEmpty) return teamMembers;
     return teamMembers
-        .where((member) =>
-            member['name']!.toLowerCase().contains(searchQuery.toLowerCase()) ||
-            member['role']!.toLowerCase().contains(searchQuery.toLowerCase()))
+        .where(
+          (member) =>
+              member['name']!.toLowerCase().contains(
+                searchQuery.toLowerCase(),
+              ) ||
+              member['role']!.toLowerCase().contains(searchQuery.toLowerCase()),
+        )
         .toList();
   }
 
@@ -96,275 +107,288 @@ class _TeamPageState extends State<TeamPage> {
     final isTablet = MediaQuery.of(context).size.width < 1000;
     final filteredMembers = getFilteredTeam();
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text(
-          'Tim Kami',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+    return WillPopScope(
+      onWillPop: () async {
+        // Handle Android back button
+        context.go('/home');
+        return false; // Prevent default back behavior
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text(
+            'Tim Kami',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          centerTitle: true,
+          backgroundColor: Colors.blue.shade700,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => context.go('/home'),
           ),
         ),
-        centerTitle: true,
-        backgroundColor: Colors.blue.shade700,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => context.go('/home'),
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Header Section
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.blue.shade700,
-                    Colors.blue.shade500,
-                  ],
+        body: SingleChildScrollView(
+          child: Column(
+            children: [
+              // Header Section
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.blue.shade700, Colors.blue.shade500],
+                  ),
                 ),
-              ),
-              padding: EdgeInsets.fromLTRB(
-                isMobile ? 16 : 24,
-                isMobile ? 20 : 24,
-                isMobile ? 16 : 24,
-                isMobile ? 32 : 48,
-              ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.groups,
-                    size: isMobile ? 48 : 64,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Meet Our Team',
-                    style: TextStyle(
-                      fontSize: isMobile ? 24 : 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Tim kami terdiri dari individu-individu dengan keahlian di bidang teknologi dan desain yang saling melengkapi. Setiap anggota memiliki peran khusus mulai dari analisis kebutuhan, perancangan UI/UX, pengembangan sistem, hingga pengujian produk. Dengan latar belakang akademik dan pengalaman yang beragam, kami berkomitmen untuk berkolaborasi secara efektif guna menghasilkan solusi digital yang inovatif, fungsional, dan tepat sasaran.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: isMobile ? 12 : 14,
-                      color: Colors.white.withOpacity(0.9),
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Search Bar
-            Padding(
-              padding: EdgeInsets.all(isMobile ? 12.0 : 16.0),
-              child: TextField(
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value;
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: 'Search team members...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.blue.shade700, width: 2),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey.shade50,
+                padding: EdgeInsets.fromLTRB(
+                  isMobile ? 16 : 24,
+                  isMobile ? 20 : 24,
+                  isMobile ? 16 : 24,
+                  isMobile ? 32 : 48,
                 ),
-              ),
-            ),
-
-            // Team Members Section - Responsive Grid
-            Transform.translate(
-              offset: const Offset(0, -12),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: isMobile ? 12.0 : 16.0),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final crossAxisCount = isMobile ? 1 : (isTablet ? 2 : 3);
-                    final itemWidth = (constraints.maxWidth - (crossAxisCount - 1) * 12) / crossAxisCount;
-
-                    return Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        for (var member in filteredMembers)
-                          SizedBox(
-                            width: isMobile ? double.infinity : itemWidth,
-                            child: TeamMemberCard(
-                              name: member['name']!,
-                              role: member['role']!,
-                              description: member['description']!,
-                              imageUrl: member['imageUrl']!,
-                              githubUrl: member['github'] as String?,
-                              instagramUrl: member['instagram'] as String?,
-                            ),
-                          ),
-                      ],
-                    );
-                  },
-                ),
-              ),
-            ),
-
-            if (filteredMembers.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(32.0),
                 child: Column(
                   children: [
                     Icon(
-                      Icons.people_outline,
-                      size: 64,
-                      color: Colors.grey.shade400,
+                      Icons.groups,
+                      size: isMobile ? 48 : 64,
+                      color: Colors.white,
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'No team members found',
+                      'Meet Our Team',
                       style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey.shade600,
-                        fontWeight: FontWeight.w500,
+                        fontSize: isMobile ? 24 : 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tim kami terdiri dari individu-individu dengan keahlian di bidang teknologi dan desain yang saling melengkapi. Setiap anggota memiliki peran khusus mulai dari analisis kebutuhan, perancangan UI/UX, pengembangan sistem, hingga pengujian produk. Dengan latar belakang akademik dan pengalaman yang beragam, kami berkomitmen untuk berkolaborasi secara efektif guna menghasilkan solusi digital yang inovatif, fungsional, dan tepat sasaran.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: isMobile ? 12 : 14,
+                        color: Colors.white.withOpacity(0.9),
+                        height: 1.4,
                       ),
                     ),
                   ],
                 ),
-              )
-            else
-              const SizedBox(height: 24),
+              ),
 
-            // Call To Action Section - More Ways to Connect
-            Container(
-              width: double.infinity,
-              margin: EdgeInsets.fromLTRB(
-                isMobile ? 16.0 : 60.0,
-                24.0,
-                isMobile ? 16.0 : 60.0,
-                24.0,
-              ),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.blue.shade600,
-                    Colors.blue.shade400,
-                  ],
+              // Search Bar
+              Padding(
+                padding: EdgeInsets.all(isMobile ? 12.0 : 16.0),
+                child: TextField(
+                  onChanged: (value) {
+                    setState(() {
+                      searchQuery = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Search team members...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(
+                        color: Colors.blue.shade700,
+                        width: 2,
+                      ),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.blue.withOpacity(0.2),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
               ),
-              padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? 20.0 : 50.0,
-                vertical: isMobile ? 30.0 : 50.0,
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'More Ways to Connect',
-                    style: TextStyle(
-                      fontSize: isMobile ? 20 : 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
-                    ),
+
+              // Team Members Section - Responsive Grid
+              Transform.translate(
+                offset: const Offset(0, -12),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 12.0 : 16.0,
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'We would love to hear from you. Whether you have a question about our services,\nneed support, or just want to chat, we\'re here to help.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: isMobile ? 13 : 15,
-                      color: Colors.white.withOpacity(0.95),
-                      height: 1.6,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(height: 50),
-                  // Contact Options Grid
-                  LayoutBuilder(
+                  child: LayoutBuilder(
                     builder: (context, constraints) {
-                      final itemsPerRow = isMobile ? 2 : 4;
-                      final spacing = isMobile ? 20.0 : 30.0;
-                      final itemWidth = (constraints.maxWidth - (itemsPerRow - 1) * spacing) / itemsPerRow;
-                      
+                      final crossAxisCount = isMobile ? 1 : (isTablet ? 2 : 3);
+                      final itemWidth =
+                          (constraints.maxWidth - (crossAxisCount - 1) * 12) /
+                          crossAxisCount;
+
                       return Wrap(
-                        spacing: spacing,
-                        runSpacing: spacing,
+                        spacing: 12,
+                        runSpacing: 12,
                         children: [
-                          _buildContactOption(
-                            width: itemWidth,
-                            icon: Icons.phone,
-                            title: 'Call our sales team',
-                            subtitle: '-',
-                            onTap: () {},
-                          ),
-                          _buildContactOption(
-                            width: itemWidth,
-                            icon: Icons.email,
-                            title: 'Email us',
-                            subtitle: '-',
-                            onTap: () {},
-                          ),
-                          _buildContactOption(
-                            width: itemWidth,
-                            icon: Icons.chat,
-                            title: 'Live chat support',
-                            subtitle: '-',
-                            onTap: () {},
-                          ),
-                          _buildContactOption(
-                            width: itemWidth,
-                            icon: Icons.location_on,
-                            title: 'Visit our office',
-                            subtitle: 'UNESA Kampus 5',
-                            onTap: () async {
-                              final Uri url = Uri.parse('https://maps.app.goo.gl/WFDtvPUjybTMzCBs8');
-                              if (await canLaunchUrl(url)) {
-                                await launchUrl(url, mode: LaunchMode.externalApplication);
-                              }
-                            },
-                          ),
+                          for (var member in filteredMembers)
+                            SizedBox(
+                              width: isMobile ? double.infinity : itemWidth,
+                              child: TeamMemberCard(
+                                name: member['name']!,
+                                role: member['role']!,
+                                description: member['description']!,
+                                imageUrl: member['imageUrl']!,
+                                githubUrl: member['github'] as String?,
+                                instagramUrl: member['instagram'] as String?,
+                              ),
+                            ),
                         ],
                       );
                     },
                   ),
-                ],
+                ),
               ),
-            ),
 
-            const SizedBox(height: 48),
+              if (filteredMembers.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.all(32.0),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.people_outline,
+                        size: 64,
+                        color: Colors.grey.shade400,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No team members found',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                const SizedBox(height: 24),
 
-            // Footer
-            const AnimoFooter(),
-          ],
+              // Call To Action Section - More Ways to Connect
+              Container(
+                width: double.infinity,
+                margin: EdgeInsets.fromLTRB(
+                  isMobile ? 16.0 : 60.0,
+                  24.0,
+                  isMobile ? 16.0 : 60.0,
+                  24.0,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Colors.blue.shade600, Colors.blue.shade400],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 20.0 : 50.0,
+                  vertical: isMobile ? 30.0 : 50.0,
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'More Ways to Connect',
+                      style: TextStyle(
+                        fontSize: isMobile ? 20 : 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'We would love to hear from you. Whether you have a question about our services,\nneed support, or just want to chat, we\'re here to help.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: isMobile ? 13 : 15,
+                        color: Colors.white.withOpacity(0.95),
+                        height: 1.6,
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                    const SizedBox(height: 50),
+                    // Contact Options Grid
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final itemsPerRow = isMobile ? 2 : 4;
+                        final spacing = isMobile ? 20.0 : 30.0;
+                        final itemWidth =
+                            (constraints.maxWidth -
+                                (itemsPerRow - 1) * spacing) /
+                            itemsPerRow;
+
+                        return Wrap(
+                          spacing: spacing,
+                          runSpacing: spacing,
+                          children: [
+                            _buildContactOption(
+                              width: itemWidth,
+                              icon: Icons.phone,
+                              title: 'Call our sales team',
+                              subtitle: '-',
+                              onTap: () {},
+                            ),
+                            _buildContactOption(
+                              width: itemWidth,
+                              icon: Icons.email,
+                              title: 'Email us',
+                              subtitle: '-',
+                              onTap: () {},
+                            ),
+                            _buildContactOption(
+                              width: itemWidth,
+                              icon: Icons.chat,
+                              title: 'Live chat support',
+                              subtitle: '-',
+                              onTap: () {},
+                            ),
+                            _buildContactOption(
+                              width: itemWidth,
+                              icon: Icons.location_on,
+                              title: 'Visit our office',
+                              subtitle: 'UNESA Kampus 5',
+                              onTap: () async {
+                                final Uri url = Uri.parse(
+                                  'https://maps.app.goo.gl/WFDtvPUjybTMzCBs8',
+                                );
+                                if (await canLaunchUrl(url)) {
+                                  await launchUrl(
+                                    url,
+                                    mode: LaunchMode.externalApplication,
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 48),
+
+              // Footer
+              const AnimoFooter(),
+            ],
+          ),
         ),
       ),
     );
@@ -467,10 +491,7 @@ class _ContactOptionWidgetState extends State<_ContactOptionWidget>
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.blue.shade600,
-                    border: Border.all(
-                      color: Colors.white,
-                      width: 2.5,
-                    ),
+                    border: Border.all(color: Colors.white, width: 2.5),
                     boxShadow: [
                       if (_isHovered)
                         BoxShadow(
@@ -480,11 +501,7 @@ class _ContactOptionWidgetState extends State<_ContactOptionWidget>
                         ),
                     ],
                   ),
-                  child: Icon(
-                    widget.icon,
-                    size: 32,
-                    color: Colors.white,
-                  ),
+                  child: Icon(widget.icon, size: 32, color: Colors.white),
                 ),
               ),
               const SizedBox(height: 18),
@@ -565,20 +582,12 @@ class _AnimatedCTAButtonState extends State<_AnimatedCTAButton>
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
           foregroundColor: Colors.blue.shade700,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 32,
-            vertical: 12,
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: const Text(
           'View Open Positions',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
         ),
       ),
     );
@@ -833,14 +842,11 @@ class _InteractiveSocialIconButtonState
       );
       return;
     }
-    
+
     try {
       final Uri url = Uri.parse(urlString);
       if (await canLaunchUrl(url)) {
-        await launchUrl(
-          url,
-          mode: LaunchMode.externalApplication,
-        );
+        await launchUrl(url, mode: LaunchMode.externalApplication);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -898,7 +904,9 @@ class _InteractiveSocialIconButtonState
                 child: FaIcon(
                   widget.icon,
                   size: 14,
-                  color: widget.isHovered ? Colors.blue.shade700 : Colors.grey.shade600,
+                  color: widget.isHovered
+                      ? Colors.blue.shade700
+                      : Colors.grey.shade600,
                 ),
               ),
             ),
@@ -907,4 +915,4 @@ class _InteractiveSocialIconButtonState
       ),
     );
   }
- }
+}

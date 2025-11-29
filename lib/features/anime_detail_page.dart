@@ -50,159 +50,187 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      backgroundColor: cs.background,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (widget.source == 'search') {
-              context.go('/search');
-            } else if (widget.source == 'genre') {
-              if (widget.genreSlug != null && widget.genreName != null) {
-                context.go(
-                  '/genre/${widget.genreSlug}?name=${widget.genreName}',
-                );
+    return WillPopScope(
+      onWillPop: () async {
+        // Handle Android back button
+        if (widget.source == 'search') {
+          context.go('/search');
+        } else if (widget.source == 'genre') {
+          if (widget.genreSlug != null && widget.genreName != null) {
+            context.go('/genre/${widget.genreSlug}?name=${widget.genreName}');
+          } else {
+            context.go('/home');
+          }
+        } else {
+          context.go('/home');
+        }
+        return false; // Prevent default back behavior
+      },
+      child: Scaffold(
+        backgroundColor: cs.background,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              if (widget.source == 'search') {
+                context.go('/search');
+              } else if (widget.source == 'genre') {
+                if (widget.genreSlug != null && widget.genreName != null) {
+                  context.go(
+                    '/genre/${widget.genreSlug}?name=${widget.genreName}',
+                  );
+                } else {
+                  context.go('/home');
+                }
               } else {
                 context.go('/home');
               }
-            } else {
-              context.go('/home');
-            }
-          },
+            },
+          ),
+          title: const Text('Detail Anime'),
         ),
-        title: const Text('Detail Anime'),
-      ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: _future,
-        builder: (context, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const CenteredLoading();
-          }
-          if (snap.hasError) {
-            return ErrorView(
-              message: snap.error.toString(),
-              onRetry: () =>
-                  setState(() => _future = fetchAnimeDetail(_normalizedSlug)),
+        body: FutureBuilder<Map<String, dynamic>>(
+          future: _future,
+          builder: (context, snap) {
+            if (snap.connectionState == ConnectionState.waiting) {
+              return const CenteredLoading();
+            }
+            if (snap.hasError) {
+              return ErrorView(
+                message: snap.error.toString(),
+                onRetry: () =>
+                    setState(() => _future = fetchAnimeDetail(_normalizedSlug)),
+              );
+            }
+
+            final raw = snap.data!;
+            final display = AnimeDetailDisplay.fromMap(
+              raw,
+              widget.titleFallback,
             );
-          }
 
-          final raw = snap.data!;
-          final display = AnimeDetailDisplay.fromMap(raw, widget.titleFallback);
-
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: SizedBox(
-                      width: 120,
-                      height: 170,
-                      child: display.imageUrl != null
-                          ? CachedNetworkImage(
-                              imageUrl: getProxyImageUrl(display.imageUrl!),
-                              fit: BoxFit.cover,
-                              placeholder: (c, _) => const ShimmerBox(),
-                              errorWidget: (c, _, __) => const ImageFallback(),
-                            )
-                          : const ImageFallback(),
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: SizedBox(
+                        width: 120,
+                        height: 170,
+                        child: display.imageUrl != null
+                            ? CachedNetworkImage(
+                                imageUrl: getProxyImageUrl(display.imageUrl!),
+                                fit: BoxFit.cover,
+                                placeholder: (c, _) => const ShimmerBox(),
+                                errorWidget: (c, _, __) =>
+                                    const ImageFallback(),
+                              )
+                            : const ImageFallback(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                display.title ?? 'No Title',
-                                style: Theme.of(context).textTheme.titleLarge,
-                              ),
-                            ),
-                            // ❤️ FAVORITE BUTTON
-                            _buildFavoriteButton(context, display),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            if (display.type != null)
-                              pastelPill(context, display.type!),
-                            if (display.status != null)
-                              pastelPill(context, display.status!),
-                            if (display.rating != null)
-                              pastelPill(context, '⭐ ${display.rating}'),
-                            if (display.episodesCount != null)
-                              pastelPill(
-                                context,
-                                '${display.episodesCount} eps',
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-
-                        // ✅ GENRES di atas - bisa diklik
-                        if (display.genres.isNotEmpty)
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            children: display.genres.map((g) {
-                              return ActionChip(
-                                label: Text(g),
-                                avatar: const Icon(Icons.local_offer, size: 16),
-                                onPressed: () {
-                                  final genreSlug = g.toLowerCase().replaceAll(
-                                    RegExp(r'\s+'),
-                                    '-',
-                                  );
-                                  context.go(
-                                    '/genre/$genreSlug?name=$g&source=detail&animeSlug=${widget.slug}',
-                                  );
-                                },
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  display.title ?? 'No Title',
+                                  style: Theme.of(context).textTheme.titleLarge,
                                 ),
-                              );
-                            }).toList(),
+                              ),
+                              // ❤️ FAVORITE BUTTON
+                              _buildFavoriteButton(context, display),
+                            ],
                           ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              if (display.type != null)
+                                pastelPill(context, display.type!),
+                              if (display.status != null)
+                                pastelPill(context, display.status!),
+                              if (display.rating != null)
+                                pastelPill(context, '⭐ ${display.rating}'),
+                              if (display.episodesCount != null)
+                                pastelPill(
+                                  context,
+                                  '${display.episodesCount} eps',
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
 
-              const SizedBox(height: 16),
-              if (display.synopsis != null)
-                Text(
-                  display.synopsis!,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                          // ✅ GENRES di atas - bisa diklik
+                          if (display.genres.isNotEmpty)
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: display.genres.map((g) {
+                                return ActionChip(
+                                  label: Text(g),
+                                  avatar: const Icon(
+                                    Icons.local_offer,
+                                    size: 16,
+                                  ),
+                                  onPressed: () {
+                                    final genreSlug = g
+                                        .toLowerCase()
+                                        .replaceAll(RegExp(r'\s+'), '-');
+                                    context.go(
+                                      '/genre/$genreSlug?name=$g&source=detail&animeSlug=${widget.slug}',
+                                    );
+                                  },
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
 
-              const SizedBox(height: 16),
-              Divider(color: cs.primary.withOpacity(0.2)),
-              const SizedBox(height: 8),
+                const SizedBox(height: 16),
+                if (display.synopsis != null)
+                  Text(
+                    display.synopsis!,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
 
-              // ✅ EPISODES di bawah
-              Text('Episodes', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              if (display.episodes.isEmpty) const Text('Belum ada episode.'),
-              ...display.episodes
-                  .map((e) => _EpisodeTile(
+                const SizedBox(height: 16),
+                Divider(color: cs.primary.withOpacity(0.2)),
+                const SizedBox(height: 8),
+
+                // ✅ EPISODES di bawah
+                Text(
+                  'Episodes',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                if (display.episodes.isEmpty) const Text('Belum ada episode.'),
+                ...display.episodes
+                    .map(
+                      (e) => _EpisodeTile(
                         item: e,
                         animeImageUrl:
                             display.imageUrl, // ✅ KIRIM IMAGE URL KE SINI
-                      ))
-                  .toList(),
-            ],
-          );
-        },
+                      ),
+                    )
+                    .toList(),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -302,8 +330,7 @@ class _EpisodeTile extends StatelessWidget {
               builder: (_) => EpisodePage(
                 episodeSlug: item.slug!,
                 titleFallback: item.title,
-                animeImageUrl:
-                    animeImageUrl, // ✅ PASSING IMAGE KE EPISODE PAGE
+                animeImageUrl: animeImageUrl, // ✅ PASSING IMAGE KE EPISODE PAGE
               ),
             ),
           );

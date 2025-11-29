@@ -82,12 +82,56 @@ class _UserPageState extends State<UserPage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return StreamBuilder(
-      stream: _authService.authStateChanges,
-      builder: (context, snapshot) {
-        final currentUser = _authService.currentUser;
+    return WillPopScope(
+      onWillPop: () async {
+        context.go('/home');
+        return false;
+      },
+      child: StreamBuilder(
+        stream: _authService.authStateChanges,
+        builder: (context, snapshot) {
+          final currentUser = _authService.currentUser;
 
-        if (currentUser == null) {
+          if (currentUser == null) {
+            return Scaffold(
+              appBar: AppBar(
+                leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => context.go('/home'),
+                ),
+                title: const Text('Profil'),
+              ),
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.person, size: 64, color: cs.outlineVariant),
+                    const SizedBox(height: 16),
+                    const Text('Anda belum login'),
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: () async {
+                        final result = await showDialog<bool>(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (ctx) => const LoginDialog(),
+                        );
+
+                        if (result == true && mounted) {
+                          setState(() {});
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('✓ Login berhasil!')),
+                          );
+                        }
+                      },
+                      child: const Text('Login Sekarang'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
           return Scaffold(
             appBar: AppBar(
               leading: IconButton(
@@ -95,182 +139,148 @@ class _UserPageState extends State<UserPage> {
                 onPressed: () => context.go('/home'),
               ),
               title: const Text('Profil'),
-            ),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.person, size: 64, color: cs.outlineVariant),
-                  const SizedBox(height: 16),
-                  const Text('Anda belum login'),
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: () async {
-                      final result = await showDialog<bool>(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (ctx) => const LoginDialog(),
-                      );
-
-                      if (result == true && mounted) {
-                        setState(() {});
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('✓ Login berhasil!')),
-                        );
-                      }
-                    },
-                    child: const Text('Login Sekarang'),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-
-        return Scaffold(
-          appBar: AppBar(
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () => context.go('/home'),
-            ),
-            title: const Text('Profil'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.logout),
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Logout?'),
-                      content: const Text('Anda akan keluar dari akun ini.'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Batal'),
-                        ),
-                        FilledButton(
-                          onPressed: () {
-                            _authService.signOut();
-                            Navigator.pop(ctx);
-                            if (mounted) {
-                              setState(() {});
-                            }
-                          },
-                          child: const Text('Logout'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              // Profile card
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          _buildProfileAvatar(cs, currentUser),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                FutureBuilder<AppUser?>(
-                                  future: _authService.getUser(currentUser.uid),
-                                  builder: (ctx, snap) {
-                                    final user = snap.data;
-                                    return Text(
-                                      user?.username ?? 'User',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  currentUser.email ?? '',
-                                  style: Theme.of(context).textTheme.bodySmall,
-                                ),
-                              ],
-                            ),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Logout?'),
+                        content: const Text('Anda akan keluar dari akun ini.'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Batal'),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () async {
-                              final user = await _authService.getUser(
-                                currentUser.uid,
-                              );
-                              if (!context.mounted) return;
-
-                              await showDialog(
-                                context: context,
-                                builder: (ctx) => EditProfileDialog(
-                                  currentUsername: user?.username,
-                                  currentProfileImage: user?.profileImage,
-                                ),
-                              ).then((_) {
-                                if (mounted) {
-                                  setState(() {});
-                                }
-                              });
+                          FilledButton(
+                            onPressed: () {
+                              _authService.signOut();
+                              Navigator.pop(ctx);
+                              if (mounted) {
+                                setState(() {});
+                              }
                             },
+                            child: const Text('Logout'),
                           ),
                         ],
                       ),
-                    ],
+                    );
+                  },
+                ),
+              ],
+            ),
+            body: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Profile card
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            _buildProfileAvatar(cs, currentUser),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  FutureBuilder<AppUser?>(
+                                    future: _authService.getUser(
+                                      currentUser.uid,
+                                    ),
+                                    builder: (ctx, snap) {
+                                      final user = snap.data;
+                                      return Text(
+                                        user?.username ?? 'User',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    currentUser.email ?? '',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () async {
+                                final user = await _authService.getUser(
+                                  currentUser.uid,
+                                );
+                                if (!context.mounted) return;
+
+                                await showDialog(
+                                  context: context,
+                                  builder: (ctx) => EditProfileDialog(
+                                    currentUsername: user?.username,
+                                    currentProfileImage: user?.profileImage,
+                                  ),
+                                ).then((_) {
+                                  if (mounted) {
+                                    setState(() {});
+                                  }
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-              // Riwayat Tontonan
-              Text(
-                'Lanjut Tonton', // Ubah judul agar lebih relevan
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              _buildWatchHistoryWidget(currentUser.uid),
-              const SizedBox(height: 24),
+                // Riwayat Tontonan
+                Text(
+                  'Lanjut Tonton', // Ubah judul agar lebih relevan
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildWatchHistoryWidget(currentUser.uid),
+                const SizedBox(height: 24),
 
-              // Favorit
-              Text(
-                'Favorit',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              _buildFavoritesWidget(currentUser.uid),
-              const SizedBox(height: 24),
+                // Favorit
+                Text(
+                  'Favorit',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildFavoritesWidget(currentUser.uid),
+                const SizedBox(height: 24),
 
-              // Komentar saya
-              Text(
-                'Komentar Saya',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
+                // Komentar saya
+                Text(
+                  'Komentar Saya',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
 
-              _buildUserCommentsWidget(currentUser.uid, null),
-            ],
-          ),
-        );
-      },
+                _buildUserCommentsWidget(currentUser.uid, null),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
