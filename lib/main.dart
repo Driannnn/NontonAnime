@@ -32,7 +32,7 @@ class AnimeApp extends StatelessWidget {
     return Sizer(
       builder: (context, orientation, deviceType) {
         return MaterialApp.router(
-          title: 'Anime Pastel',
+          title: 'Animo',
           debugShowCheckedModeBanner: false,
           theme: buildPastelTheme(),
           routerConfig: appRouter,
