@@ -57,6 +57,9 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Container(
@@ -76,37 +79,37 @@ class _SplashScreenState extends State<SplashScreen>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Logo
+                        // Logo - lebih besar di mobile
                         Image.asset(
                           'assets/logo.gif',
-                          width: 35.w,
-                          height: 35.w,
+                          width: isMobile ? 100.w : 65.w,
+                          height: isMobile ? 100.w : 65.w,
                           fit: BoxFit.contain,
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 24),
 
-                        // App Name
+                        // App Name - lebih besar di mobile
                         Text(
                           'ANIMO',
                           style: GoogleFonts.cherryBombOne(
-                            fontSize: 7.5.sp,
+                            fontSize: isMobile ? 9.w : 7.5.sp,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                             letterSpacing: 1.5,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 8),
 
-                        // Tagline
+                        // Tagline - lebih besar di mobile
                         Text(
                           'Enjoy Watching!',
                           style: GoogleFonts.cherryBombOne(
-                            fontSize: 5.5.sp,
+                            fontSize: isMobile ? 6.5.w : 5.5.sp,
                             color: Colors.grey.shade700,
                             letterSpacing: 1,
                           ),
                         ),
-                        const SizedBox(height: 35),
+                        const SizedBox(height: 40),
 
                         // Loading Indicator
                         SizedBox(

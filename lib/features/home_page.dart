@@ -135,8 +135,14 @@ class _HomePageState extends State<HomePage> {
     Widget? appBarLeading;
 
     if (isMobile) {
-      // Mobile: actions kosong, biarkan drawer di 'leading' (otomatis)
-      appBarActions = [];
+      // Mobile: search icon di pojok kanan atas
+      appBarActions = [
+        IconButton(
+          icon: const Icon(Icons.search),
+          tooltip: 'Cari Anime',
+          onPressed: () => context.go('/search'),
+        ),
+      ];
       appBarLeading =
           null; // Ini akan membuat AppBar otomatis menampilkan ikon hamburger
     } else {
@@ -182,14 +188,6 @@ class _HomePageState extends State<HomePage> {
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const GenreListPage()),
                     );
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.search),
-                  title: const Text('Cari Anime'),
-                  onTap: () {
-                    context.pop(); // Tutup drawer
-                    context.go('/search');
                   },
                 ),
               ],
