@@ -1,6 +1,6 @@
 # Nonton Anime
 
-NontonAnime - Aplikasi Flutter untuk streaming anime
+Animo - Aplikasi Flutter untuk streaming anime
 
 ## 🎯 Features
 
@@ -16,7 +16,6 @@ NontonAnime - Aplikasi Flutter untuk streaming anime
 
 - Flutter SDK 3.9.0+
 - Dart 3.9.0+
-- Node.js 14+ (untuk proxy server)
 
 ### Installation
 
@@ -33,30 +32,11 @@ NontonAnime - Aplikasi Flutter untuk streaming anime
    flutter pub get
    ```
 
-3. **Setup proxy server** (di terminal terpisah)
-
-   ```bash
-   cd anime-proxy
-   npm install
-   npm start
-   ```
-
-   Proxy server akan berjalan di `http://localhost:3000`
-
-4. **Run app**
+3. **Run app**
    ```bash
    flutter run
    ```
 
-## 📖 Image Proxy Documentation
-
-Gambar cover tidak muncul? Lihat detail setup di [IMAGE_PROXY_SETUP.md](./IMAGE_PROXY_SETUP.md)
-
-**Quick Start:**
-
-1. Buka terminal baru
-2. Jalankan proxy server: `cd anime-proxy && npm start`
-3. Flutter app akan otomatis menggunakan proxy untuk load images
 
 ## 🏗️ Project Structure
 
@@ -72,9 +52,6 @@ lib/
 ├── utils/               # Utilities (proxy, slug, etc)
 └── widgets/             # Reusable widgets
 
-anime-proxy/
-├── server.js            # Express proxy server
-└── package.json
 ```
 
 ## 🔑 Key Files
@@ -90,41 +67,18 @@ anime-proxy/
 ## 📱 Platform Support
 
 - ✅ Android
-- ✅ iOS
 - ✅ Web
-- ✅ Windows
-- ✅ macOS
-- ✅ Linux
 
-## 🐛 Troubleshooting
-
-### Gambar tidak muncul?
-
-1. Pastikan proxy server running: `npm start` di folder `anime-proxy`
-2. Cek port 3000 tidak terpakai
-3. Lihat [IMAGE_PROXY_SETUP.md](./IMAGE_PROXY_SETUP.md) untuk detail
-
-### Emulator Android?
-
-Update di `lib/config/environment.dart`:
-
-```dart
-return 'http://10.0.2.2:3000'; // Ganti localhost
-```
 
 ## 📚 Resources
 
 - [Flutter Documentation](https://flutter.dev/)
 - [Dart Language Tour](https://dart.dev/language)
-- [Express.js Documentation](https://expressjs.com/)
 
 ## 📄 License
 
 This project is licensed under the MIT License
 
-## 👨‍💻 Author
-
-Driannnn
 
 ---
 ## 🧑‍💻 Tim Kontributor
