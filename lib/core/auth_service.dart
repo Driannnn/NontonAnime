@@ -10,6 +10,7 @@ class AuthService {
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
+  /// Sign Up dengan email dan password
   Future<AppUser?> signUp({
     required String email,
     required String password,
@@ -28,13 +29,16 @@ class AuthService {
         createdAt: DateTime.now(),
       );
 
+      // Simpan ke Firestore
       await _firestore.collection('users').doc(user.uid).set(user.toMap());
+
       return user;
     } catch (e) {
       rethrow;
     }
   }
 
+  /// Sign In dengan email dan password
   Future<AppUser?> signIn({
     required String email,
     required String password,
@@ -59,10 +63,12 @@ class AuthService {
     }
   }
 
+  /// Sign Out
   Future<void> signOut() async {
     await _auth.signOut();
   }
 
+  /// Ambil user dari Firestore
   Future<AppUser?> getUser(String uid) async {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
@@ -75,6 +81,7 @@ class AuthService {
     }
   }
 
+  /// Update profil user
   Future<void> updateUserProfile({
     required String uid,
     String? username,
@@ -97,10 +104,10 @@ class AuthService {
 class CommentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Post comment baru (Sekarang menerima animeTitle)
+  /// Post comment baru
   Future<String> postComment({
     required String animeSlug,
-    required String animeTitle, // ✅ TAMBAHAN PENTING
+    required String animeTitle, // ✅ Wajib isi judul
     required String userId,
     required String username,
     required String userEmail,
@@ -157,6 +164,8 @@ class CommentService {
         });
   }
 
+  /// ✅ PERBAIKAN BUG LIKE: Menggunakan FieldValue (Atomic Operation)
+  /// Ini mencegah like hilang/bounce jika diklik cepat atau koneksi lambat.
   Future<void> toggleLikeComment({
     required String commentId,
     required String userId,
@@ -168,19 +177,19 @@ class CommentService {
       if (!doc.exists) return;
 
       final likedBy = List<String>.from(doc['likedBy'] as List? ?? []);
-      final currentLikes = doc['likes'] as int? ?? 0;
+      final isLiked = likedBy.contains(userId);
 
-      if (likedBy.contains(userId)) {
-        likedBy.remove(userId);
+      if (isLiked) {
+        // Jika sudah like -> Unlike (Hapus ID & Kurangi Counter secara atomik)
         await commentRef.update({
-          'likedBy': likedBy,
-          'likes': currentLikes - 1,
+          'likedBy': FieldValue.arrayRemove([userId]),
+          'likes': FieldValue.increment(-1),
         });
       } else {
-        likedBy.add(userId);
+        // Jika belum like -> Like (Tambah ID & Tambah Counter secara atomik)
         await commentRef.update({
-          'likedBy': likedBy,
-          'likes': currentLikes + 1,
+          'likedBy': FieldValue.arrayUnion([userId]),
+          'likes': FieldValue.increment(1),
         });
       }
     } catch (e) {
@@ -188,12 +197,14 @@ class CommentService {
     }
   }
 
+  /// Delete comment
   Future<void> deleteComment({
     required String commentId,
     required String userId,
   }) async {
     try {
       final doc = await _firestore.collection('comments').doc(commentId).get();
+
       if (doc.exists && doc['userId'] == userId) {
         await _firestore.collection('comments').doc(commentId).delete();
       }
@@ -202,6 +213,7 @@ class CommentService {
     }
   }
 
+  /// Update comment
   Future<void> updateComment({
     required String commentId,
     required String userId,
@@ -210,6 +222,7 @@ class CommentService {
   }) async {
     try {
       final doc = await _firestore.collection('comments').doc(commentId).get();
+
       if (doc.exists && doc['userId'] == userId) {
         await _firestore.collection('comments').doc(commentId).update({
           'content': content,
@@ -221,7 +234,7 @@ class CommentService {
     }
   }
 
-  // ✅ INI FUNGSI YANG HILANG DAN MENYEBABKAN ERROR
+  /// 🛠️ Helper: Update Judul Komentar Langsung (untuk Auto-Repair)
   Future<void> updateCommentTitleDirectly(String commentId, String correctTitle) async {
     try {
       await _firestore.collection('comments').doc(commentId).update({

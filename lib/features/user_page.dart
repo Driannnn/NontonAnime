@@ -30,9 +30,11 @@ class _UserPageState extends State<UserPage> {
   final _commentService = CommentService();
   final _watchHistoryService = WatchHistoryService();
   final _favoriteService = FavoriteService();
-
+  
+  // Dio instance untuk fallback search
   final Dio _dio = Dio(BaseOptions(baseUrl: 'https://www.sankavollerei.com'));
 
+  // Set untuk melacak item yang sedang diperbaiki agar tidak request berulang
   final Set<String> _repairingIds = {};
   final Set<String> _repairingCommentIds = {};
 
@@ -57,14 +59,14 @@ class _UserPageState extends State<UserPage> {
       future: _authService.getUser(currentUser.uid),
       builder: (ctx, snap) {
         final profileImage = snap.data?.profileImage;
+
         if (profileImage != null && profileImage.isNotEmpty) {
           if (profileImage.startsWith('data:image')) {
             try {
-              final bytes = base64Decode(profileImage.split(',')[1]);
+              final base64String = profileImage.split(',')[1];
+              final bytes = base64Decode(base64String);
               return CircleAvatar(
-                radius: 40,
-                backgroundImage: MemoryImage(bytes),
-              );
+                  radius: 40, backgroundImage: MemoryImage(bytes));
             } catch (e) {
               return _defaultAvatar(cs, currentUser);
             }
@@ -90,19 +92,15 @@ class _UserPageState extends State<UserPage> {
   String _formatSlugToTitle(String slug) {
     if (slug.isEmpty) return 'Unknown Title';
     final text = slug.replaceAll('-', ' ');
-    return text
-        .split(' ')
-        .map((word) {
-          if (word.isEmpty) return '';
-          return "${word[0].toUpperCase()}${word.substring(1)}";
-        })
-        .join(' ');
+    return text.split(' ').map((word) {
+      if (word.isEmpty) return '';
+      return "${word[0].toUpperCase()}${word.substring(1)}";
+    }).join(' ');
   }
 
-  /// Helper: Search Title (Kunci perbaikan "Uwmf")
+  /// Helper: Search Title Fallback
   Future<String?> _searchTitleBySlug(String keyword) async {
     try {
-      // Search api
       final res = await _dio.get('/anime/search/$keyword');
       final data = res.data;
       List rawList = [];
@@ -113,7 +111,7 @@ class _UserPageState extends State<UserPage> {
       } else if (data is List) {
         rawList = data;
       }
-
+      
       if (rawList.isNotEmpty) {
         final firstItem = Map<String, dynamic>.from(rawList.first);
         return firstItem['title'];
@@ -128,25 +126,24 @@ class _UserPageState extends State<UserPage> {
     _repairingIds.add(item.id);
 
     try {
-      String slug = normalizeAnimeSlug(item.animeSlug);
-      if (slug.contains('-episode-')) slug = slug.split('-episode-')[0];
-
-      // 1. Coba fetch detail langsung
+      // 1. Coba fetch detail episode dulu
       try {
-        final rawData = await fetchAnimeDetail(slug);
-        final detail = AnimeDetailDisplay.fromMap(rawData, null);
-        if (detail.imageUrl != null && detail.imageUrl!.isNotEmpty) {
-          await _watchHistoryService.updateImageDirectly(
-            item.id,
-            detail.imageUrl!,
-          );
-          return;
-        }
+         await fetchEpisodeDetail(item.episodeSlug ?? item.animeSlug);
       } catch (_) {}
+      
+      // 2. Fetch Anime Detail
+      String slug = normalizeAnimeSlug(item.animeSlug);
+      if (slug.contains('-episode-')) {
+        slug = slug.split('-episode-')[0];
+      }
 
-      // 2. Jika gagal, coba search title dulu, lalu ambil gambar dari hasil search
-      final searchRes = await _dio.get('/anime/search/$slug');
-      // ... (logika extraksi gambar search bisa ditambahkan disini jika perlu)
+      final rawData = await fetchAnimeDetail(slug);
+      final detail = AnimeDetailDisplay.fromMap(rawData, null);
+
+      if (detail.imageUrl != null && detail.imageUrl!.isNotEmpty) {
+        await _watchHistoryService.updateImageDirectly(
+            item.id, detail.imageUrl!);
+      }
     } catch (e) {
       // ignore
     } finally {
@@ -154,52 +151,70 @@ class _UserPageState extends State<UserPage> {
     }
   }
 
-  /// 🛠️ AUTO-REPAIR: Judul Komentar (FIXED LOGIC)
+  /// 🛠️ AUTO-REPAIR: Judul Komentar (VERSI PERBAIKAN)
+  /// Menggunakan data Episode untuk mendapatkan judul asli, lalu dibersihkan.
   Future<void> _repairCommentTitle(AnimeComment comment) async {
     if (_repairingCommentIds.contains(comment.id)) return;
     _repairingCommentIds.add(comment.id);
 
     try {
       String foundTitle = '';
-      String keyword = normalizeAnimeSlug(comment.animeSlug);
-      if (keyword.contains('-episode-'))
-        keyword = keyword.split('-episode-')[0];
 
-      // STEP 1: Coba Fetch Anime Detail (Priority 1)
-      // Ini akan berhasil untuk "kimi-to-koete..." tapi gagal untuk "uwmf"
+      // CARA 1: Fetch Detail EPISODE (Pasti Berhasil untuk slug singkatan)
+      // Slug: "uwmf-episode-1..." -> API Episode kenal ini
       try {
-        final rawData = await fetchAnimeDetail(keyword);
-        final detail = AnimeDetailDisplay.fromMap(rawData, null);
-        if (detail.title != null &&
-            detail.title!.isNotEmpty &&
-            detail.title != 'No Title') {
-          foundTitle = detail.title!;
+        final rawData = await fetchEpisodeDetail(comment.animeSlug);
+        final epDetail = EpisodeDetailDisplay.fromMap(rawData, null);
+        
+        // Hasil biasanya: "Utagoe wa Mille-Feuille Episode 1 Sub Indo"
+        if (epDetail.title != null && epDetail.title!.isNotEmpty) {
+           foundTitle = epDetail.title!;
         }
       } catch (_) {}
 
-      // STEP 2: Jika Gagal, WAJIB SEARCH (Priority 2)
-      // "uwmf" akan masuk sini. Search "uwmf" -> Dapat "Utagoe wa Mille-Feuille"
+      // CARA 2: Jika Cara 1 Gagal, coba Fetch Anime Detail (Fallback)
       if (foundTitle.isEmpty) {
-        final searchResult = await _searchTitleBySlug(keyword);
-        if (searchResult != null) {
-          foundTitle = searchResult;
-        }
+         try {
+            String slug = normalizeAnimeSlug(comment.animeSlug);
+            if (slug.contains('-episode-')) slug = slug.split('-episode-')[0];
+            
+            final rawData = await fetchAnimeDetail(slug);
+            final animeDetail = AnimeDetailDisplay.fromMap(rawData, null);
+            if (animeDetail.title != null) foundTitle = animeDetail.title!;
+         } catch (_) {}
       }
 
-      // STEP 3: Update Database
-      if (foundTitle.isNotEmpty &&
-          foundTitle.toLowerCase() != comment.animeTitle.toLowerCase()) {
-        await _commentService.updateCommentTitleDirectly(
-          comment.id,
-          foundTitle,
-        );
+      // CARA 3: Search (Ultimate Fallback)
+      if (foundTitle.isEmpty) {
+         String keyword = normalizeAnimeSlug(comment.animeSlug);
+         if (keyword.contains('-episode-')) keyword = keyword.split('-episode-')[0];
+         final res = await _searchTitleBySlug(keyword);
+         if (res != null) foundTitle = res;
       }
+
+      // PEMBERSIHAN JUDUL
+      // Ubah "Utagoe wa Mille-Feuille Episode 1 Sub Indo" -> "Utagoe wa Mille-Feuille"
+      if (foundTitle.isNotEmpty) {
+         // Regex: Hapus kata 'Episode' (case insensitive) dan segala sesuatu setelahnya
+         String cleanTitle = foundTitle.replaceAll(RegExp(r'\s+Episode\s+\d+.*', caseSensitive: false), '').trim();
+         
+         // Jika regex gagal (misal judul tidak ada kata 'Episode'), pakai judul aslinya saja
+         if (cleanTitle.isEmpty) cleanTitle = foundTitle;
+
+         // Simpan ke Database
+         if (cleanTitle.isNotEmpty && cleanTitle.toLowerCase() != comment.animeTitle.toLowerCase()) {
+            await _commentService.updateCommentTitleDirectly(comment.id, cleanTitle);
+         }
+      }
+
     } catch (e) {
       // ignore
     } finally {
       _repairingCommentIds.remove(comment.id);
     }
   }
+
+  // --- BUILD UTAMA ---
 
   @override
   Widget build(BuildContext context) {
@@ -214,7 +229,10 @@ class _UserPageState extends State<UserPage> {
         stream: _authService.authStateChanges,
         builder: (context, snapshot) {
           final currentUser = _authService.currentUser;
-          if (currentUser == null) return _buildNotLoggedInView(cs);
+
+          if (currentUser == null) {
+            return _buildNotLoggedInView(cs);
+          }
 
           return Scaffold(
             appBar: AppBar(
@@ -241,16 +259,14 @@ class _UserPageState extends State<UserPage> {
                     Text(
                       'Lanjut Tonton',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
                     TextButton(
                       onPressed: () =>
                           _showClearHistoryDialog(context, currentUser.uid),
-                      child: const Text(
-                        'Hapus History',
-                        style: TextStyle(color: Colors.red),
-                      ),
+                      child: const Text('Hapus History',
+                          style: TextStyle(color: Colors.red)),
                     ),
                   ],
                 ),
@@ -260,8 +276,8 @@ class _UserPageState extends State<UserPage> {
                 Text(
                   'Favorit',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 const SizedBox(height: 12),
                 _buildFavoritesWidget(currentUser.uid),
@@ -269,8 +285,8 @@ class _UserPageState extends State<UserPage> {
                 Text(
                   'Komentar Saya',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
                 const SizedBox(height: 12),
                 _buildUserCommentsWidget(currentUser.uid, null),
@@ -282,7 +298,8 @@ class _UserPageState extends State<UserPage> {
     );
   }
 
-  // ... (Widgets: NotLoggedIn, ProfileCard, Favorites SAMA PERSIS SEPERTI SEBELUMNYA)
+  // --- SUB-WIDGETS ---
+
   Widget _buildNotLoggedInView(ColorScheme cs) {
     return Scaffold(
       appBar: AppBar(
@@ -307,7 +324,9 @@ class _UserPageState extends State<UserPage> {
                   barrierDismissible: false,
                   builder: (ctx) => const LoginDialog(),
                 );
-                if (result == true && mounted) setState(() {});
+                if (result == true && mounted) {
+                  setState(() {});
+                }
               },
               child: const Text('Login Sekarang'),
             ),
@@ -337,7 +356,9 @@ class _UserPageState extends State<UserPage> {
                           final user = snap.data;
                           return Text(
                             user?.username ?? 'User',
-                            style: Theme.of(context).textTheme.titleMedium
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
                                 ?.copyWith(fontWeight: FontWeight.bold),
                           );
                         },
@@ -374,26 +395,225 @@ class _UserPageState extends State<UserPage> {
     );
   }
 
+  Widget _buildWatchHistoryWidget(String userId) {
+    return StreamBuilder<List<WatchHistory>>(
+      stream: _watchHistoryService.getWatchHistory(userId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        var history = snapshot.data ?? [];
+        final cs = Theme.of(context).colorScheme;
+
+        final Map<String, WatchHistory> uniqueHistory = {};
+        for (final item in history) {
+          if (!uniqueHistory.containsKey(item.animeSlug)) {
+            uniqueHistory[item.animeSlug] = item;
+          }
+        }
+        history = uniqueHistory.values.toList();
+
+        if (history.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Anda belum menonton anime.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          );
+        }
+
+        return SizedBox(
+          height: 200,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            itemCount: history.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, idx) {
+              final item = history[idx];
+              final hasImage =
+                  item.animeImage != null && item.animeImage!.isNotEmpty;
+
+              if (!hasImage) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  _repairMissingImage(item);
+                });
+              }
+
+              return GestureDetector(
+                onTap: () {
+                  if (item.episodeSlug != null &&
+                      item.episodeSlug!.isNotEmpty) {
+                    final fixedEpSlug = normalizeAnimeSlug(item.episodeSlug!);
+                    final uri = Uri(
+                      path: '/episode/$fixedEpSlug',
+                      queryParameters: {
+                        'title': item.episodeTitle ?? 'Episode',
+                        if (hasImage) 'animeImage': item.animeImage,
+                      },
+                    );
+                    context.push(uri.toString());
+                  } else {
+                    final fixedAnimeSlug = normalizeAnimeSlug(item.animeSlug);
+                    context.go('/anime/$fixedAnimeSlug');
+                  }
+                },
+                child: SizedBox(
+                  width: 140,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: hasImage
+                                  ? CachedNetworkImage(
+                                      imageUrl: coverProxy(item.animeImage!),
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      fit: BoxFit.cover,
+                                      placeholder: (c, url) =>
+                                          const ShimmerBox(),
+                                      errorWidget: (c, url, error) => Container(
+                                        color: cs.surfaceContainerHighest,
+                                        child: const Icon(Icons.broken_image),
+                                      ),
+                                    )
+                                  : Container(
+                                      color: cs.surfaceContainerHighest,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          _repairingIds.contains(item.id)
+                                              ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                          strokeWidth: 2))
+                                              : Icon(Icons.movie_filter,
+                                                  color: cs.outline),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _repairingIds.contains(item.id)
+                                                ? "Fixing..."
+                                                : "No Image",
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelSmall,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                            ),
+                            Positioned.fill(
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.5),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                        color: Colors.white, width: 1.5),
+                                  ),
+                                  child: const Icon(Icons.play_arrow,
+                                      color: Colors.white, size: 24),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.vertical(
+                                    bottom: Radius.circular(8)),
+                                child: LinearProgressIndicator(
+                                  value: (item.progress > 0
+                                          ? item.progress
+                                          : 0.15)
+                                      .clamp(0.0, 1.0),
+                                  backgroundColor: Colors.grey.withOpacity(0.5),
+                                  color: Colors.redAccent,
+                                  minHeight: 4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        item.animeTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style:
+                            Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      if (item.episodeTitle != null)
+                        Text(
+                          item.episodeTitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    fontSize: 11,
+                                    color: cs.primary,
+                                  ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildFavoritesWidget(String userId) {
     return StreamBuilder<List<Favorite>>(
       stream: _favoriteService.getFavorites(userId),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox();
+        if (!snapshot.hasData)
+          return const Center(child: CircularProgressIndicator());
         final favorites = snapshot.data!;
-        if (favorites.isEmpty) return const Text('Belum ada favorit');
+        final cs = Theme.of(context).colorScheme;
+
+        if (favorites.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Anda belum memiliki favorit.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          );
+        }
+
         return SizedBox(
           height: 200,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: favorites.length,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (ctx, i) {
-              final item = favorites[i];
+            itemBuilder: (context, idx) {
+              final item = favorites[idx];
               return GestureDetector(
                 onTap: () => context.go('/anime/${item.animeSlug}'),
                 child: SizedBox(
                   width: 120,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: ClipRRect(
@@ -401,6 +621,11 @@ class _UserPageState extends State<UserPage> {
                           child: CachedNetworkImage(
                             imageUrl: coverProxy(item.animeImage ?? ''),
                             fit: BoxFit.cover,
+                            placeholder: (c, url) => const ShimmerBox(),
+                            errorWidget: (_, __, ___) => Container(
+                              color: cs.surfaceContainerHighest,
+                              child: const Icon(Icons.image),
+                            ),
                           ),
                         ),
                       ),
@@ -422,123 +647,7 @@ class _UserPageState extends State<UserPage> {
     );
   }
 
-  // --- HISTORY WIDGET ---
-  Widget _buildWatchHistoryWidget(String userId) {
-    return StreamBuilder<List<WatchHistory>>(
-      stream: _watchHistoryService.getWatchHistory(userId),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData)
-          return const Center(child: CircularProgressIndicator());
-        var history = snapshot.data!;
-        final Map<String, WatchHistory> uniqueHistory = {};
-        for (final item in history) {
-          if (!uniqueHistory.containsKey(item.animeSlug)) {
-            uniqueHistory[item.animeSlug] = item;
-          }
-        }
-        history = uniqueHistory.values.toList();
-
-        if (history.isEmpty) return const Text('Belum ada history.');
-
-        return SizedBox(
-          height: 200,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: history.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, idx) {
-              final item = history[idx];
-              final hasImage =
-                  item.animeImage != null && item.animeImage!.isNotEmpty;
-              if (!hasImage)
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _repairMissingImage(item);
-                });
-
-              return GestureDetector(
-                onTap: () {
-                  if (item.episodeSlug != null &&
-                      item.episodeSlug!.isNotEmpty) {
-                    final fixedEpSlug = normalizeAnimeSlug(item.episodeSlug!);
-                    final uri = Uri(
-                      path: '/episode/$fixedEpSlug',
-                      queryParameters: {
-                        'title': item.episodeTitle ?? 'Episode',
-                        if (hasImage) 'animeImage': item.animeImage,
-                      },
-                    );
-                    context.push(uri.toString());
-                  } else {
-                    context.go('/anime/${normalizeAnimeSlug(item.animeSlug)}');
-                  }
-                },
-                child: SizedBox(
-                  width: 140,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: hasImage
-                                  ? CachedNetworkImage(
-                                      imageUrl: coverProxy(item.animeImage!),
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                      fit: BoxFit.cover,
-                                    )
-                                  : Container(
-                                      color: Colors.grey[200],
-                                      child: Center(
-                                        child: _repairingIds.contains(item.id)
-                                            ? const CircularProgressIndicator()
-                                            : const Icon(Icons.movie),
-                                      ),
-                                    ),
-                            ),
-                            Positioned.fill(
-                              child: Center(
-                                child: Icon(
-                                  Icons.play_arrow,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              left: 0,
-                              right: 0,
-                              child: LinearProgressIndicator(
-                                value:
-                                    (item.progress > 0 ? item.progress : 0.15)
-                                        .clamp(0.0, 1.0),
-                                color: Colors.red,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        item.animeTitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  // --- USER COMMENTS WIDGET (FIXED) ---
+  // ✅ WIDGET KOMENTAR DENGAN AUTO-REPAIR JUDUL & FORMATTING
   Widget _buildUserCommentsWidget(String userId, AppUser? appUser) {
     return StreamBuilder<List<AnimeComment>>(
       stream: _commentService.getCommentsByUser(userId),
@@ -550,7 +659,15 @@ class _UserPageState extends State<UserPage> {
         final comments = snapshot.data ?? [];
         final cs = Theme.of(context).colorScheme;
 
-        if (comments.isEmpty) return const Text('Belum ada komentar.');
+        if (comments.isEmpty) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Anda belum ada komentar.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          );
+        }
 
         return ListView.separated(
           shrinkWrap: true,
@@ -560,19 +677,22 @@ class _UserPageState extends State<UserPage> {
           itemBuilder: (context, idx) {
             final comment = comments[idx];
 
-            // ⚡ INDIKATOR PERLU REPAIR
-            // Repair jika: Kosong, Sama dengan Slug, ATAU Mengandung "Episode" (indikasi judul episode, bukan anime)
-            final bool needsRepair =
-                comment.animeTitle.isEmpty ||
-                comment.animeTitle == comment.animeSlug ||
-                comment.animeTitle.contains('Episode');
+            // ⚡ INDIKATOR KOMENTAR PERLU DIPERBAIKI
+            // Perlu repair jika judulnya kosong, sama dengan slug, ATAU mengandung kata "Episode" (berarti belum dipotong)
+            final bool needsRepair = comment.animeTitle.isEmpty || 
+                                     comment.animeTitle == comment.animeSlug ||
+                                     comment.animeTitle.contains('Episode');
 
+            // Trigger Auto-Repair Judul
             if (needsRepair) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _repairCommentTitle(comment);
               });
             }
 
+            // TAMPILAN JUDUL:
+            // 1. Judul DB (jika sudah diperbaiki dan tidak ada '-')
+            // 2. Slug yang diformat (sementara)
             final displayTitle = (!needsRepair)
                 ? comment.animeTitle
                 : _formatSlugToTitle(comment.animeSlug);
@@ -589,23 +709,27 @@ class _UserPageState extends State<UserPage> {
                         Expanded(
                           child: Row(
                             children: [
+                              // Indikator loading kecil jika sedang memperbaiki judul
                               if (_repairingCommentIds.contains(comment.id))
                                 const Padding(
                                   padding: EdgeInsets.only(right: 8.0),
                                   child: SizedBox(
-                                    width: 10,
-                                    height: 10,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
+                                      width: 10,
+                                      height: 10,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2)),
                                 ),
                               Expanded(
                                 child: Text(
                                   displayTitle,
                                   overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.labelLarge
-                                      ?.copyWith(fontWeight: FontWeight.bold),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelLarge
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: cs.onSurface,
+                                      ),
                                 ),
                               ),
                             ],
@@ -615,7 +739,10 @@ class _UserPageState extends State<UserPage> {
                           children: [
                             Icon(Icons.star, size: 16, color: cs.primary),
                             const SizedBox(width: 4),
-                            Text('${comment.rating}'),
+                            Text(
+                              '${comment.rating}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
                           ],
                         ),
                       ],
@@ -643,9 +770,7 @@ class _UserPageState extends State<UserPage> {
         content: const Text('Anda akan keluar dari akun ini.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
           FilledButton(
             onPressed: () {
               _authService.signOut();
@@ -663,12 +788,11 @@ class _UserPageState extends State<UserPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Hapus History?'),
-        content: const Text('Semua riwayat tontonan akan dihapus.'),
+        content: const Text(
+            'Semua riwayat tontonan akan dihapus dan tidak bisa dikembalikan.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Batal')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
