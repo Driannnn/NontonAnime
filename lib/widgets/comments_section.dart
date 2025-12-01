@@ -65,6 +65,7 @@ class _CommentsSectionState extends State<CommentsSection> {
 
       await _commentService.postComment(
         animeSlug: widget.animeSlug,
+        animeTitle: widget.animeTitleFallback,
         userId: currentUser.uid,
         username: appUser?.username ?? 'Anonymous',
         userEmail: currentUser.email ?? '',

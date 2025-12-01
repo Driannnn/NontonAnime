@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class WatchHistoryService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  /// Update data history (logika standar)
   Future<void> addWatchHistory({
     required String userId,
     required String animeSlug,
@@ -13,6 +14,7 @@ class WatchHistoryService {
     double progress = 0.0,
   }) async {
     try {
+      // Cari data yang duplikat berdasarkan animeSlug
       final existingDocs = await _firestore
           .collection('watch_history')
           .where('userId', isEqualTo: userId)
@@ -20,30 +22,29 @@ class WatchHistoryService {
           .get();
 
       if (existingDocs.docs.isNotEmpty) {
-        final docRef = existingDocs.docs.first.reference;
-        final existingData = existingDocs.docs.first.data();
-
-        // LOGIKA BARU: Hanya update field yang tidak null
-        // Agar gambar lama tidak tertimpa null jika data baru kosong
-        final Map<String, dynamic> updates = {
-          'animeTitle': animeTitle,
-          'episodeSlug': episodeSlug,
-          'episodeTitle': episodeTitle,
-          'progress': progress,
-          'watchedAt': Timestamp.now(),
-        };
-
-        if (animeImage != null && animeImage.isNotEmpty) {
-          updates['animeImage'] = animeImage;
+        final batch = _firestore.batch();
+        for (final doc in existingDocs.docs) {
+          final Map<String, dynamic> updates = {
+            'animeTitle': animeTitle,
+            'episodeSlug': episodeSlug,
+            'episodeTitle': episodeTitle,
+            'progress': progress,
+            'watchedAt': Timestamp.now(),
+          };
+          // Hanya update gambar jika data baru valid
+          if (animeImage != null && animeImage.isNotEmpty) {
+            updates['animeImage'] = animeImage;
+          }
+          batch.update(doc.reference, updates);
         }
-
-        await docRef.update(updates);
+        await batch.commit();
       } else {
+        // Buat baru
         await _firestore.collection('watch_history').add({
           'userId': userId,
           'animeSlug': animeSlug,
           'animeTitle': animeTitle,
-          'animeImage': animeImage ?? '', // Default string kosong
+          'animeImage': animeImage ?? '',
           'episodeSlug': episodeSlug,
           'episodeTitle': episodeTitle,
           'progress': progress,
@@ -51,11 +52,21 @@ class WatchHistoryService {
         });
       }
     } catch (e) {
-      // ignore error
+      // ignore
     }
   }
 
-  // ... (Method getWatchHistory, delete, clear TETAP SAMA seperti sebelumnya)
+  /// 🛠️ FITUR BARU: Update gambar langsung tembak ke ID dokumen (Pasti berhasil)
+  Future<void> updateImageDirectly(String docId, String newImageUrl) async {
+    try {
+      await _firestore.collection('watch_history').doc(docId).update({
+        'animeImage': newImageUrl,
+      });
+    } catch (e) {
+      // ignore
+    }
+  }
+
   Stream<List<WatchHistory>> getWatchHistory(String userId) {
     return _firestore
         .collection('watch_history')
@@ -69,6 +80,7 @@ class WatchHistoryService {
     });
   }
 
+  // Hapus satu item
   Future<void> deleteFromHistory({
     required String historyId,
     required String userId,
@@ -84,15 +96,18 @@ class WatchHistoryService {
     }
   }
 
+  // Hapus semua (Clear History)
   Future<void> clearWatchHistory(String userId) async {
     try {
       final docs = await _firestore
           .collection('watch_history')
           .where('userId', isEqualTo: userId)
           .get();
+      final batch = _firestore.batch();
       for (final doc in docs.docs) {
-        await doc.reference.delete();
+        batch.delete(doc.reference);
       }
+      await batch.commit();
     } catch (e) {
       rethrow;
     }

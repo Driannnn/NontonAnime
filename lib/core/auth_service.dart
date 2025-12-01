@@ -10,7 +10,6 @@ class AuthService {
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  /// Sign Up dengan email dan password
   Future<AppUser?> signUp({
     required String email,
     required String password,
@@ -29,16 +28,13 @@ class AuthService {
         createdAt: DateTime.now(),
       );
 
-      // Simpan ke Firestore
       await _firestore.collection('users').doc(user.uid).set(user.toMap());
-
       return user;
     } catch (e) {
       rethrow;
     }
   }
 
-  /// Sign In dengan email dan password
   Future<AppUser?> signIn({
     required String email,
     required String password,
@@ -63,12 +59,10 @@ class AuthService {
     }
   }
 
-  /// Sign Out
   Future<void> signOut() async {
     await _auth.signOut();
   }
 
-  /// Ambil user dari Firestore
   Future<AppUser?> getUser(String uid) async {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
@@ -81,7 +75,6 @@ class AuthService {
     }
   }
 
-  /// Update profil user
   Future<void> updateUserProfile({
     required String uid,
     String? username,
@@ -104,9 +97,10 @@ class AuthService {
 class CommentService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Post comment baru
+  /// Post comment baru (Sekarang menerima animeTitle)
   Future<String> postComment({
     required String animeSlug,
+    required String animeTitle, // ✅ TAMBAHAN PENTING
     required String userId,
     required String username,
     required String userEmail,
@@ -117,6 +111,7 @@ class CommentService {
     try {
       final docRef = await _firestore.collection('comments').add({
         'animeSlug': animeSlug,
+        'animeTitle': animeTitle, // ✅ Simpan judul ke database
         'userId': userId,
         'username': username,
         'userEmail': userEmail,
@@ -162,7 +157,6 @@ class CommentService {
         });
   }
 
-  /// Like/Unlike comment
   Future<void> toggleLikeComment({
     required String commentId,
     required String userId,
@@ -177,14 +171,12 @@ class CommentService {
       final currentLikes = doc['likes'] as int? ?? 0;
 
       if (likedBy.contains(userId)) {
-        // Unlike
         likedBy.remove(userId);
         await commentRef.update({
           'likedBy': likedBy,
           'likes': currentLikes - 1,
         });
       } else {
-        // Like
         likedBy.add(userId);
         await commentRef.update({
           'likedBy': likedBy,
@@ -196,14 +188,12 @@ class CommentService {
     }
   }
 
-  /// Delete comment (hanya owner atau admin)
   Future<void> deleteComment({
     required String commentId,
     required String userId,
   }) async {
     try {
       final doc = await _firestore.collection('comments').doc(commentId).get();
-
       if (doc.exists && doc['userId'] == userId) {
         await _firestore.collection('comments').doc(commentId).delete();
       }
@@ -212,7 +202,6 @@ class CommentService {
     }
   }
 
-  /// Update comment (hanya owner)
   Future<void> updateComment({
     required String commentId,
     required String userId,
@@ -221,7 +210,6 @@ class CommentService {
   }) async {
     try {
       final doc = await _firestore.collection('comments').doc(commentId).get();
-
       if (doc.exists && doc['userId'] == userId) {
         await _firestore.collection('comments').doc(commentId).update({
           'content': content,
@@ -230,6 +218,17 @@ class CommentService {
       }
     } catch (e) {
       rethrow;
+    }
+  }
+
+  // ✅ INI FUNGSI YANG HILANG DAN MENYEBABKAN ERROR
+  Future<void> updateCommentTitleDirectly(String commentId, String correctTitle) async {
+    try {
+      await _firestore.collection('comments').doc(commentId).update({
+        'animeTitle': correctTitle,
+      });
+    } catch (e) {
+      // ignore
     }
   }
 }

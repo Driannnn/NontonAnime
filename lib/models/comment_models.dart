@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Model untuk User
 class AppUser {
   final String uid;
   final String username;
@@ -39,23 +38,24 @@ class AppUser {
   }
 }
 
-/// Model untuk Comment
 class AnimeComment {
   final String id;
   final String animeSlug;
+  final String animeTitle; // ✅ Field baru
   final String userId;
   final String username;
   final String userEmail;
   final String? userProfileImage;
   final String content;
-  final double rating; // 1-10
+  final double rating;
   final DateTime createdAt;
   final int likes;
-  final List<String> likedBy; // UID yang sudah like
+  final List<String> likedBy;
 
   AnimeComment({
     required this.id,
     required this.animeSlug,
+    this.animeTitle = '', // ✅ Default kosong
     required this.userId,
     required this.username,
     required this.userEmail,
@@ -71,6 +71,7 @@ class AnimeComment {
     return AnimeComment(
       id: docId,
       animeSlug: map['animeSlug'] as String? ?? '',
+      animeTitle: map['animeTitle'] as String? ?? '', // ✅ Baca field baru
       userId: map['userId'] as String? ?? '',
       username: map['username'] as String? ?? 'Anonymous',
       userEmail: map['userEmail'] as String? ?? '',
@@ -88,6 +89,7 @@ class AnimeComment {
   Map<String, dynamic> toMap() {
     return {
       'animeSlug': animeSlug,
+      'animeTitle': animeTitle, // ✅ Tulis field baru
       'userId': userId,
       'username': username,
       'userEmail': userEmail,

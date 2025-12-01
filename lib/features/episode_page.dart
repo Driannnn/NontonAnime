@@ -1,4 +1,4 @@
-import 'dart:async'; // ✅ Tambahkan import ini untuk Timer
+import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -11,6 +11,7 @@ import '../models/anime_models.dart';
 import '../widgets/common.dart';
 import '../utils/web_iframe.dart';
 import '../widgets/comments_section.dart';
+import '../utils/slug_utils.dart'; 
 
 class EpisodePage extends StatefulWidget {
   final String episodeSlug;
@@ -34,10 +35,13 @@ class _EpisodePageState extends State<EpisodePage> {
   WebViewController? _webCtrl;
   String? _iframeViewType;
   String? _currentEpisodeSlug;
+  
+  // Variabel lokal untuk menyimpan gambar
+  String? _currentAnimeImage;
 
-  // ✅ Variabel untuk Timer Progress
+  // Timer Progress
   Timer? _progressTimer;
-  double _currentProgress = 0.05; // Mulai dari 5%
+  double _currentProgress = 0.05;
 
   final _authService = AuthService();
   final _watchHistoryService = WatchHistoryService();
@@ -46,33 +50,68 @@ class _EpisodePageState extends State<EpisodePage> {
   void initState() {
     super.initState();
     _currentEpisodeSlug = widget.episodeSlug;
+    _currentAnimeImage = widget.animeImageUrl; 
+    
     _future = fetchEpisodeDetail(_currentEpisodeSlug!);
 
-    // ✅ Mulai tracking waktu
+    // ✅ FITUR PERBAIKAN: Cari gambar dengan logika slug yang lebih pintar
+    _tryFixMissingImage();
+
     _startProgressTracking();
   }
 
   @override
   void dispose() {
-    // ✅ Hentikan timer saat keluar halaman
     _progressTimer?.cancel();
     super.dispose();
   }
 
-  // ✅ Logika Timer: Update progress setiap 30 detik
+  /// 🛠️ Mencari gambar cover jika kosong
+  Future<void> _tryFixMissingImage() async {
+    // Jika gambar sudah ada dan valid, tidak perlu cari
+    if (_currentAnimeImage != null && _currentAnimeImage!.isNotEmpty) return;
+
+    try {
+      debugPrint('🖼️ Mencari gambar untuk: $_currentEpisodeSlug');
+      
+      final cleanSlug = normalizeAnimeSlug(_currentEpisodeSlug!);
+      
+      // LOGIKA BARU: Gunakan split '-episode-' yang lebih aman daripada regex
+      // Contoh: "utagoe-wa-mille-feuille-episode-1-sub-indo" -> "utagoe-wa-mille-feuille"
+      String animeSlugCandidate = cleanSlug;
+      if (cleanSlug.contains('-episode-')) {
+        animeSlugCandidate = cleanSlug.split('-episode-')[0];
+      }
+
+      // Fetch detail anime
+      final rawData = await fetchAnimeDetail(animeSlugCandidate);
+      final animeDetail = AnimeDetailDisplay.fromMap(rawData, null);
+
+      if (animeDetail.imageUrl != null && animeDetail.imageUrl!.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _currentAnimeImage = animeDetail.imageUrl;
+          });
+          debugPrint('✅ Gambar ditemukan: $_currentAnimeImage');
+          // Langsung simpan ke DB!
+          _updateHistoryToDB();
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ Gagal auto-fix image: $e');
+    }
+  }
+
   void _startProgressTracking() {
     _progressTimer?.cancel();
     _progressTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       if (!mounted) return;
 
-      // Asumsi 1 episode = 24 menit.
-      // 30 detik = ~2% progress (0.02)
       setState(() {
         _currentProgress += 0.02;
-        if (_currentProgress > 0.95) _currentProgress = 0.95; // Mentok di 95%
+        if (_currentProgress > 0.95) _currentProgress = 0.95;
       });
 
-      // Simpan ke database (Silent update)
       _updateHistoryToDB();
     });
   }
@@ -81,27 +120,29 @@ class _EpisodePageState extends State<EpisodePage> {
     final currentUser = _authService.currentUser;
     if (currentUser == null) return;
 
+    // Bersihkan slug untuk identifikasi anime
+    final cleanSlug = normalizeAnimeSlug(widget.episodeSlug);
+    final animeSlug = cleanSlug.contains('-episode-') 
+        ? cleanSlug.split('-episode-').first 
+        : cleanSlug;
+
     try {
       await _watchHistoryService.addWatchHistory(
         userId: currentUser.uid,
-        animeSlug: widget.episodeSlug.split('/').first,
+        animeSlug: animeSlug,
         animeTitle: widget.titleFallback ?? 'Unknown',
-        animeImage: widget.animeImageUrl,
+        // Pastikan menggunakan _currentAnimeImage yang mungkin sudah diperbaiki
+        animeImage: _currentAnimeImage, 
         episodeSlug: _currentEpisodeSlug,
-        episodeTitle:
-            display?.title ?? widget.titleFallback, // Pakai title yang ada
+        episodeTitle: display?.title ?? widget.titleFallback,
         progress: _currentProgress,
       );
     } catch (_) {}
   }
 
-  // ... (Sisa kode WebView, Stream picker tetap sama, hanya sesuaikan build)
-
   DirectStream? _pickMainStream(EpisodeDetailDisplay display) {
     final playable = display.directStreams
-        .where(
-          (e) => !e.isDownload && e.url != null && e.url!.trim().isNotEmpty,
-        )
+        .where((e) => !e.isDownload && e.url != null && e.url!.trim().isNotEmpty)
         .toList();
     if (playable.isNotEmpty) return playable.first;
     return null;
@@ -121,7 +162,7 @@ class _EpisodePageState extends State<EpisodePage> {
           _webCtrl = ctrl;
         });
       } catch (e) {
-        debugPrint('📱 Error initializing WebViewController: $e');
+        debugPrint('📱 Error init WebView: $e');
       }
     }
   }
@@ -129,13 +170,7 @@ class _EpisodePageState extends State<EpisodePage> {
   bool _isEmbedUrl(String url) {
     if (url.isEmpty) return false;
     url = url.toLowerCase();
-    if (url.endsWith('.mp4') ||
-        url.endsWith('.mkv') ||
-        url.endsWith('.webm') ||
-        url.endsWith('.avi') ||
-        url.endsWith('.mov')) {
-      return false;
-    }
+    if (url.endsWith('.mp4') || url.endsWith('.mkv')) return false;
     return true;
   }
 
@@ -146,22 +181,13 @@ class _EpisodePageState extends State<EpisodePage> {
         children: [
           const Icon(Icons.video_library, size: 48, color: Colors.white54),
           const SizedBox(height: 16),
-          const Text(
-            'Player tidak bisa diload',
-            style: TextStyle(color: Colors.white70, fontSize: 16),
-          ),
+          const Text('Player tidak bisa diload', style: TextStyle(color: Colors.white70)),
           const SizedBox(height: 24),
           if (streamUrl != null)
             FilledButton.icon(
               onPressed: () async {
-                try {
-                  final uri = Uri.parse(streamUrl);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                } catch (e) {
-                  debugPrint('Error launching URL: $e');
-                }
+                final uri = Uri.parse(streamUrl);
+                await launchUrl(uri, mode: LaunchMode.externalApplication);
               },
               icon: const Icon(Icons.open_in_new),
               label: const Text('Buka di Browser'),
@@ -177,9 +203,11 @@ class _EpisodePageState extends State<EpisodePage> {
       _webCtrl = null;
       _iframeViewType = null;
       _future = fetchEpisodeDetail(slug);
-      // Reset progress untuk episode baru
       _currentProgress = 0.05;
+      // Jangan reset _currentAnimeImage jika sudah ada
     });
+    // Coba fix lagi (untuk jaga-jaga jika pindah ke anime beda, meski jarang)
+    _tryFixMissingImage();
   }
 
   @override
@@ -190,9 +218,7 @@ class _EpisodePageState extends State<EpisodePage> {
       backgroundColor: cs.background,
       appBar: AppBar(
         title: Text(
-          widget.titleFallback == null
-              ? 'Episode'
-              : 'Episode — ${widget.titleFallback}',
+          widget.titleFallback == null ? 'Episode' : 'Episode — ${widget.titleFallback}',
           overflow: TextOverflow.ellipsis,
         ),
       ),
@@ -205,26 +231,18 @@ class _EpisodePageState extends State<EpisodePage> {
           if (snap.hasError) {
             return ErrorView(
               message: snap.error.toString(),
-              onRetry: () {
-                setState(() {
-                  _future = fetchEpisodeDetail(_currentEpisodeSlug!);
-                });
-              },
+              onRetry: () => setState(() {
+                _future = fetchEpisodeDetail(_currentEpisodeSlug!);
+              }),
             );
           }
 
           final raw = snap.data!;
-          final display = EpisodeDetailDisplay.fromMap(
-            raw,
-            widget.titleFallback,
-          );
+          final display = EpisodeDetailDisplay.fromMap(raw, widget.titleFallback);
 
           final mainStream = _pickMainStream(display);
           final streamUrl = mainStream?.url?.trim();
-          final canLoadInWebView =
-              streamUrl != null &&
-              streamUrl.isNotEmpty &&
-              _isEmbedUrl(streamUrl);
+          final canLoadInWebView = streamUrl != null && streamUrl.isNotEmpty && _isEmbedUrl(streamUrl);
 
           if (canLoadInWebView && _webCtrl == null && _iframeViewType == null) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -235,20 +253,16 @@ class _EpisodePageState extends State<EpisodePage> {
             });
           }
 
-          // ✅ Panggil update history awal saat load berhasil
-          // Menggunakan postFrameCallback agar tidak error saat build
+          // Trigger update history (termasuk simpan gambar) saat data episode siap
           WidgetsBinding.instance.addPostFrameCallback((_) {
             _updateHistoryToDB(display: display);
           });
 
-          final downloads = display.directStreams
-              .where((e) => e.isDownload)
-              .toList();
+          final downloads = display.directStreams.where((e) => e.isDownload).toList();
 
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
             children: [
-              // ===== PLAYER VIDEO DI ATAS =====
               AspectRatio(
                 aspectRatio: 16 / 9,
                 child: Container(
@@ -268,151 +282,38 @@ class _EpisodePageState extends State<EpisodePage> {
               ),
               const SizedBox(height: 16),
 
-              // ===== FALLBACK UNTUK WEB =====
-              if (_webCtrl == null && streamUrl != null)
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '📺 Stream URL:',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 8),
-                        SelectableText(
-                          streamUrl,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Colors.blue,
-                                decoration: TextDecoration.underline,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              if (display.title != null && display.title!.trim().isNotEmpty)
+              if (display.title != null)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
                   child: Text(
                     display.title!,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
 
-              // ===== DOWNLOAD LINKS =====
-              if (downloads.isNotEmpty) ...[
-                Text(
-                  '⬇️ Download',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                ...downloads.map(
-                  (d) => Card(
-                    child: ListTile(
-                      title: Text(d.label ?? 'Download'),
-                      trailing: const Icon(Icons.download),
-                      onTap: () async {
-                        if (d.url != null && d.url!.isNotEmpty) {
-                          try {
-                            // Sanitize URL - ensure it has proper scheme
-                            String urlToLaunch = d.url!.trim();
-                            if (!urlToLaunch.startsWith('http://') &&
-                                !urlToLaunch.startsWith('https://')) {
-                              urlToLaunch = 'https://$urlToLaunch';
-                            }
-
-                            final uri = Uri.parse(urlToLaunch);
-
-                            // Check if URL is valid
-                            if (uri.scheme.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('URL tidak valid'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                              return;
-                            }
-
-                            if (await canLaunchUrl(uri)) {
-                              await launchUrl(
-                                uri,
-                                mode: LaunchMode.externalApplication,
-                              );
-                            } else {
-                              // Fallback: try with different mode
-                              try {
-                                await launchUrl(uri);
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Tidak bisa membuka URL: ${e.toString()}',
-                                      ),
-                                      duration: const Duration(seconds: 3),
-                                    ),
-                                  );
-                                }
-                              }
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error: ${e.toString()}'),
-                                  duration: const Duration(seconds: 3),
-                                ),
-                              );
-                            }
-                          }
-                        }
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              // ===== NAVIGASI NEXT / PREV =====
+              // Navigasi Next/Prev
               if (display.nextSlug != null || display.prevSlug != null)
                 Row(
                   children: [
                     if (display.prevSlug != null)
                       FilledButton.tonal(
-                        onPressed: () {
-                          _loadNewEpisode(
-                            display.prevSlug!,
-                            newTitle: 'Previous',
-                          );
-                        },
+                        onPressed: () => _loadNewEpisode(display.prevSlug!),
                         child: const Text('Previous'),
                       ),
                     const SizedBox(width: 12),
                     if (display.nextSlug != null)
                       FilledButton(
-                        onPressed: () {
-                          _loadNewEpisode(display.nextSlug!, newTitle: 'Next');
-                        },
+                        onPressed: () => _loadNewEpisode(display.nextSlug!),
                         child: const Text('Next'),
                       ),
                   ],
                 ),
 
               const SizedBox(height: 24),
-
-              // ===== COMMENTS SECTION =====
               CommentsSection(
                 animeSlug: _currentEpisodeSlug ?? widget.episodeSlug,
                 animeTitleFallback: widget.titleFallback ?? 'Anime',
               ),
-
               const SizedBox(height: 32),
             ],
           );
