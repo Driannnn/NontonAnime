@@ -1,16 +1,10 @@
 import 'package:bloc/bloc.dart';
-import 'package:dio/dio.dart';
+import '../core/api_client.dart';
 import '../models/anime_models.dart';
 import 'anime_search_state.dart';
 
 class AnimeSearchCubit extends Cubit<AnimeSearchState> {
-  AnimeSearchCubit()
-      : _dio = Dio(
-          BaseOptions(baseUrl: 'https://www.sankavollerei.com'),
-        ),
-        super(AnimeSearchState.initial());
-
-  final Dio _dio;
+  AnimeSearchCubit() : super(AnimeSearchState.initial());
 
   Future<void> search(String rawKeyword) async {
     final keyword = rawKeyword.trim();
@@ -41,29 +35,10 @@ class AnimeSearchCubit extends Cubit<AnimeSearchState> {
     );
 
     try {
-      final res = await _dio.get('/anime/search/$keyword');
-      final data = res.data;
+      final animeList = await fetchSearchAnime(keyword);
 
-      List rawList = [];
-
-      // 1. search_results (sesuai contoh API kamu)
-      if (data is Map && data['search_results'] is List) {
-        rawList = data['search_results'];
-      }
-      // 2. fallback: data['data']
-      else if (data is Map && data['data'] is List) {
-        rawList = data['data'];
-      }
-      // 3. fallback: response langsung berupa List
-      else if (data is List) {
-        rawList = data;
-      }
-
-      final results = rawList
-          .whereType<Map>()
-          .map((e) => AnimeDisplay.fromMap(
-                Map<String, dynamic>.from(e),
-              ))
+      final results = animeList
+          .map((e) => AnimeDisplay.fromMap(e))
           .toList();
 
       emit(
