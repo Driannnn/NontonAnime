@@ -310,6 +310,34 @@ class _EpisodePageState extends State<EpisodePage> {
                 ),
 
               const SizedBox(height: 24),
+              
+              // Download Links Section
+              if (downloads.isNotEmpty) ...[
+                Text(
+                  'Download',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: downloads
+                      .map((dl) => FilledButton.tonal(
+                            onPressed: () async {
+                              final uri = Uri.parse(dl.url ?? '');
+                              try {
+                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              } catch (e) {
+                                print('Error opening download URL: $e');
+                              }
+                            },
+                            child: Text(dl.label ?? 'Download'),
+                          ))
+                      .toList(),
+                ),
+                const SizedBox(height: 24),
+              ],
+
               CommentsSection(
                 animeSlug: _currentEpisodeSlug ?? widget.episodeSlug,
                 animeTitleFallback: widget.titleFallback ?? 'Anime',
