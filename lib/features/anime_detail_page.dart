@@ -201,11 +201,18 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                 ),
 
                 const SizedBox(height: 16),
-                if (display.synopsis != null)
+                if (display.synopsis != null) ...[
+                  Text(
+                    'Synopsis',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 8),
                   Text(
                     display.synopsis!,
                     style: Theme.of(context).textTheme.bodyMedium,
+                    textAlign: TextAlign.justify,
                   ),
+                ],
 
                 const SizedBox(height: 16),
                 Divider(color: cs.primary.withOpacity(0.2)),
