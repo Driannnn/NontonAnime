@@ -3,18 +3,19 @@ import 'package:dio/dio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/api_client.dart';
 import '../widgets/common.dart';
 import '../utils/slug_utils.dart';
 import '../utils/image_proxy_utils.dart';
 
 // Model untuk item anime tamat
 class _CompletedAnimeItem {
-  late String _title;
-  late String _slug;
-  late String _poster;
-  late String _rating;
-  late String _episodeCount;
-  late String _lastRelease;
+  final String _title;
+  final String _slug;
+  final String _poster;
+  final String _rating;
+  final String _episodeCount;
+  final String _lastRelease;
 
   String get title => _title;
   String get slug => _slug;
@@ -23,13 +24,6 @@ class _CompletedAnimeItem {
   String get episodeCount => _episodeCount;
   String get lastRelease => _lastRelease;
 
-  set title(String value) => _title = value;
-  set slug(String value) => _slug = value;
-  set poster(String value) => _poster = value;
-  set rating(String value) => _rating = value;
-  set episodeCount(String value) => _episodeCount = value;
-  set lastRelease(String value) => _lastRelease = value;
-
   _CompletedAnimeItem({
     required String title,
     required String slug,
@@ -37,14 +31,12 @@ class _CompletedAnimeItem {
     required String rating,
     required String episodeCount,
     required String lastRelease,
-  }) {
-    this.title = title;
-    this.slug = slug;
-    this.poster = poster;
-    this.rating = rating;
-    this.episodeCount = episodeCount;
-    this.lastRelease = lastRelease;
-  }
+  })  : _title = title,
+        _slug = slug,
+        _poster = poster,
+        _rating = rating,
+        _episodeCount = episodeCount,
+        _lastRelease = lastRelease;
 }
 
 class PaginatedCompletedSection extends StatefulWidget {
@@ -58,7 +50,8 @@ class PaginatedCompletedSection extends StatefulWidget {
 }
 
 class _PaginatedCompletedSectionState extends State<PaginatedCompletedSection> {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'https://www.sankavollerei.com'));
+  // Gunakan dio instance dari api_client yang sudah punya cf_clearance cookie
+  late Dio _dio;
 
   bool _loading = false;
   String? _error;
@@ -75,6 +68,7 @@ class _PaginatedCompletedSectionState extends State<PaginatedCompletedSection> {
   @override
   void initState() {
     super.initState();
+    _dio = dio; // Gunakan dio dari api_client
     _fetchCompleted(page: 1);
   }
 
@@ -85,18 +79,24 @@ class _PaginatedCompletedSectionState extends State<PaginatedCompletedSection> {
     });
 
     try {
-      final res = await _dio.get('/anime/complete-anime/$page');
+      print('📡 Fetching completed anime page: $page');
+      final res = await _dio.get('/complete-anime', queryParameters: {'page': page});
       final body = res.data;
+      print('✓ Response received: ${body.runtimeType}');
+      print('📦 Response: $body');
 
       if (body is! Map || body['data'] is! Map) {
         throw Exception(
-          'Format /anime/complete-anime/$page tidak sesuai: $body',
+          'Format /complete-anime tidak sesuai. Got: ${body.runtimeType}',
         );
       }
 
       final inner = Map<String, dynamic>.from(body['data']);
+      print('🔍 Inner data keys: ${inner.keys.toList()}');
 
-      final rawList = inner['completeAnimeData'];
+      // Key yang benar adalah 'animeList', bukan 'completeAnimeData'
+      final rawList = inner['animeList'];
+      print('📋 animeList type: ${rawList.runtimeType}, length: ${rawList is List ? (rawList as List).length : "N/A"}');
       final listAnime = (rawList is List) ? rawList : <dynamic>[];
 
       final parsedList = listAnime.whereType<Map>().map((m) {
@@ -104,30 +104,35 @@ class _PaginatedCompletedSectionState extends State<PaginatedCompletedSection> {
 
         return _CompletedAnimeItem(
           title: (mm['title'] ?? '').toString(),
-          slug: (mm['slug'] ?? '').toString(),
+          slug: (mm['animeId'] ?? '').toString(), // Key yang benar adalah 'animeId'
           poster: (mm['poster'] ?? '').toString(),
-          rating: (mm['rating'] ?? '').toString(),
-          episodeCount: (mm['episode_count'] ?? '').toString(),
-          lastRelease: (mm['last_release_date'] ?? '').toString(),
+          rating: (mm['score'] ?? '').toString(), // Key yang benar adalah 'score'
+          episodeCount: (mm['episodes'] ?? '').toString(), // Key yang benar adalah 'episodes'
+          lastRelease: (mm['lastReleaseDate'] ?? '').toString(), // Key yang benar adalah 'lastReleaseDate'
         );
       }).toList();
 
+      print('✅ Parsed ${parsedList.length} anime items');
       _completedList = parsedList;
 
-      final pag = inner['paginationData'];
+      // Pagination ada di top-level body, bukan nested di 'data'
+      final pag = body['pagination'];
+      print('📊 Pagination data: $pag');
       if (pag is Map) {
         final p = Map<String, dynamic>.from(pag);
 
-        _currentPage = _asInt(p['current_page']) ?? page;
-        _lastPage = _asInt(p['last_visible_page']);
+        _currentPage = _asInt(p['currentPage']) ?? page;
+        _lastPage = _asInt(p['totalPages']);
 
-        _hasNext = p['has_next_page'] == true;
-        _hasPrev = p['has_previous_page'] == true;
+        _hasNext = p['hasNextPage'] == true;
+        _hasPrev = p['hasPrevPage'] == true;
 
         _nextPage =
-            _asInt(p['next_page']) ?? (_hasNext ? _currentPage + 1 : null);
+            _asInt(p['nextPage']) ?? (_hasNext ? _currentPage + 1 : null);
         _prevPage =
-            _asInt(p['previous_page']) ?? (_hasPrev ? _currentPage - 1 : null);
+            _asInt(p['prevPage']) ?? (_hasPrev ? _currentPage - 1 : null);
+        
+        print('Page: $_currentPage, HasNext: $_hasNext, HasPrev: $_hasPrev');
       } else {
         _currentPage = page;
         _hasNext = false;
@@ -136,6 +141,7 @@ class _PaginatedCompletedSectionState extends State<PaginatedCompletedSection> {
         _prevPage = _hasPrev ? page - 1 : null;
       }
     } catch (e) {
+      print('❌ Error: $e');
       _error = e.toString();
     } finally {
       if (mounted) {
