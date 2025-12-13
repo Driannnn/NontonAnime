@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sizer/sizer.dart';
 import 'package:go_router/go_router.dart';
 
 import '../models/anime_models.dart';
@@ -86,14 +85,15 @@ class _AnimeCarouselSliderState extends State<AnimeCarouselSlider>
 
     // Responsive height berdasarkan screen size
     final carouselHeight = screenWidth > 900
-        ? screenHeight *
-              0.5 // Web: 50% dari screen height
+        ? screenHeight * 0.5 // Web: 50% dari screen height
         : (screenWidth > 600
-              ? 35
-                    .h // Tablet: 35% dari screen height
-              : 28
-                    .h // Mobile: 28% dari screen height
-                    );
+            ? screenHeight * 0.35 // Tablet: 35% dari screen height
+            : screenHeight * 0.28); // Mobile: 28% dari screen height
+
+    final horizontalPadding = screenWidth > 900 ? screenWidth * 0.02 : screenWidth * 0.015;
+    final spacingBetween = screenWidth > 900 ? screenHeight * 0.02 : screenHeight * 0.015;
+    final indicatorHeight = 50.0;
+    final spacingAfterCarousel = screenWidth > 900 ? screenHeight * 0.015 : screenHeight * 0.008;
 
     return Column(
       children: [
@@ -116,20 +116,18 @@ class _AnimeCarouselSliderState extends State<AnimeCarouselSlider>
               final isCurrent = _currentIndex == (index % widget.items.length);
 
               return Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: screenWidth > 900 ? 2.w : 1.5.w,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
                 child: _CarouselCard(item: item, isCurrent: isCurrent),
               );
             },
           ),
         ),
 
-        SizedBox(height: screenWidth > 900 ? 2.h : 1.5.h),
+        SizedBox(height: spacingBetween),
 
         // Indicators + Navigation Buttons
         SizedBox(
-          height: 50,
+          height: indicatorHeight,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -211,9 +209,9 @@ class _AnimeCarouselSliderState extends State<AnimeCarouselSlider>
         ),
 
         // Current Item Info
-        SizedBox(height: screenWidth > 900 ? 1.5.h : 0.8.h),
+        SizedBox(height: spacingAfterCarousel),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 2.w),
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -227,7 +225,7 @@ class _AnimeCarouselSliderState extends State<AnimeCarouselSlider>
                 textAlign: TextAlign.center,
                 overflow: TextOverflow.ellipsis,
               ),
-              SizedBox(height: 0.3.h),
+              SizedBox(height: screenHeight * 0.003),
               Text(
                 '${_currentIndex + 1} / ${widget.items.length}',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
