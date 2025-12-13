@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'package:dio/dio.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/api_client.dart';
 import '../widgets/common.dart';
 import '../models/anime_models.dart';
 import '../utils/slug_utils.dart';
@@ -29,8 +29,6 @@ class GenreAnimePage extends StatefulWidget {
 }
 
 class _GenreAnimePageState extends State<GenreAnimePage> {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'https://www.sankavollerei.com'));
-
   bool _loading = false;
   String? _error;
 
@@ -56,21 +54,19 @@ class _GenreAnimePageState extends State<GenreAnimePage> {
     });
 
     try {
-      final res = await _dio.get(
-        '/anime/genre/${widget.genreSlug}',
-        queryParameters: {'page': page},
+      print('📡 Fetching genre anime: ${widget.genreSlug}, page: $page');
+      
+      // Gunakan fetchGenreAnime() dari api_client dengan cf_clearance
+      final genreData = await fetchGenreAnime(
+        genreId: widget.genreSlug,
+        page: page,
       );
 
-      final data = res.data;
-      if (data is! Map || data['data'] is! Map) {
-        throw Exception('Format genre response tidak sesuai: $data');
-      }
-
-      final inner = Map<String, dynamic>.from(data['data']);
-
-      // anime list
-      final animeRaw = inner['anime'];
+      // anime list - key adalah 'animeList'
+      final animeRaw = genreData['animeList'];
       final listAnime = (animeRaw is List) ? animeRaw : <dynamic>[];
+      
+      print('✅ Loaded ${listAnime.length} anime for genre ${widget.genreSlug}');
 
       final parsedList = listAnime.whereType<Map>().map((m) {
         final map = Map<String, dynamic>.from(m);
@@ -78,17 +74,17 @@ class _GenreAnimePageState extends State<GenreAnimePage> {
       }).toList();
 
       // pagination
-      final pag = inner['pagination'];
+      final pag = genreData['pagination'];
       if (pag is Map) {
         final p = Map<String, dynamic>.from(pag);
-        _currentPage = _tryInt(p['current_page']) ?? page;
-        _lastPage = _tryInt(p['last_visible_page']);
-        _hasNext = p['has_next_page'] == true;
-        _hasPrev = p['has_previous_page'] == true;
+        _currentPage = _tryInt(p['currentPage']) ?? page;
+        _lastPage = _tryInt(p['totalPages']);
+        _hasNext = p['hasNextPage'] == true;
+        _hasPrev = p['hasPrevPage'] == true;
         _nextPage =
-            _tryInt(p['next_page']) ?? (_hasNext ? _currentPage + 1 : null);
+            _tryInt(p['nextPage']) ?? (_hasNext ? _currentPage + 1 : null);
         _prevPage =
-            _tryInt(p['previous_page']) ?? (_hasPrev ? _currentPage - 1 : null);
+            _tryInt(p['prevPage']) ?? (_hasPrev ? _currentPage - 1 : null);
       } else {
         _currentPage = page;
         _hasNext = false;
@@ -99,6 +95,7 @@ class _GenreAnimePageState extends State<GenreAnimePage> {
 
       _animes = parsedList;
     } catch (e) {
+      print('❌ Error fetching genre anime: $e');
       _error = e.toString();
     } finally {
       if (mounted) {

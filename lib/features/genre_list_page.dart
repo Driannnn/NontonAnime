@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'package:dio/dio.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/api_client.dart';
 import '../widgets/common.dart';
 import 'genre_results_page.dart';
 
@@ -14,8 +14,6 @@ class GenreListPage extends StatefulWidget {
 }
 
 class _GenreListPageState extends State<GenreListPage> {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'https://www.sankavollerei.com'));
-
   bool _loading = false;
   String? _error;
   List<_GenreItem> _genres = [];
@@ -34,54 +32,27 @@ class _GenreListPageState extends State<GenreListPage> {
     });
 
     try {
-      final res = await _dio.get('/anime/genre');
-      final data = res.data;
-
-      List raw = [];
-      if (data is Map && data['data'] is List) {
-        raw = data['data'];
-      } else if (data is Map && data['genres'] is List) {
-        raw = data['genres'];
-      } else if (data is List) {
-        raw = data;
-      }
-
-      _genres = raw
-          .whereType<Map>()
-          .map((m) {
-            final map = Map<String, dynamic>.from(m);
-            final name = map['name']?.toString() ?? map['genre']?.toString();
-            // slug bisa `slug`, atau `path`, atau `url` terakhir
-            String? slug = map['slug']?.toString();
-            if (slug == null || slug.isEmpty) {
-              // coba ekstrak dari url kalau ada
-              final url =
-                  map['otakudesu_url']?.toString() ?? map['url']?.toString();
-              if (url != null) {
-                slug = _extractLastSegment(url);
-              }
-            }
-            return _GenreItem(name: name ?? '-', slug: slug ?? '');
+      // Gunakan fetchGenreList() dari api_client dengan cf_clearance
+      final genres = await fetchGenreList();
+      
+      _genres = genres
+          .map((g) {
+            final title = g['title']?.toString() ?? '';
+            final genreId = g['genreId']?.toString() ?? '';
+            return _GenreItem(name: title, slug: genreId);
           })
           .where((g) => g.slug.isNotEmpty)
           .toList();
+      
+      print('✅ Loaded ${_genres.length} genres');
     } catch (e) {
+      print('❌ Error loading genres: $e');
       _error = e.toString();
     } finally {
       if (mounted) {
         setState(() => _loading = false);
       }
     }
-  }
-
-  String _extractLastSegment(String url) {
-    var s = url.trim();
-    if (s.endsWith('/')) s = s.substring(0, s.length - 1);
-    final idx = s.lastIndexOf('/');
-    if (idx != -1 && idx < s.length - 1) {
-      return s.substring(idx + 1);
-    }
-    return s;
   }
 
   @override
