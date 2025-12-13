@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:sizer/sizer.dart';
+import 'package:go_router/go_router.dart';
 import 'theme/app_theme.dart';
 import 'router/app_router.dart';
 import 'firebase_options.dart';
@@ -11,16 +11,22 @@ import 'firebase_options.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart'
     if (dart.library.io) 'utils/stub_url_strategy.dart';
 
+late GoRouter router;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // ✅ Conditional: hanya set URL strategy di web platform
+  // ✅ PENTING: Set URL strategy SEBELUM Firebase initialization
   if (kIsWeb) {
     usePathUrlStrategy();
   }
+
+  // Initialize Firebase (SETELAH URL strategy diset)
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // ✅ Initialize router
+  router = appRouter;
+
   runApp(const AnimeApp());
 }
 
@@ -29,15 +35,10 @@ class AnimeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Sizer(
-      builder: (context, orientation, deviceType) {
-        return MaterialApp.router(
-          title: 'Animo',
-          debugShowCheckedModeBanner: false,
-          theme: buildPastelTheme(),
-          routerConfig: appRouter,
-        );
-      },
-    );
+    return MaterialApp.router(
+      title: 'Anime Pastel',
+      debugShowCheckedModeBanner: false,
+      theme: buildPastelTheme(),
+      routerConfig: router);
   }
 }
