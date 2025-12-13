@@ -293,7 +293,32 @@ class AnimeDetailDisplay {
     }
 
     final rating = getStr(['rating', 'score', 'rate']);
-    final synopsis = getStr(['synopsis', 'sinopsis', 'description', 'desc']);
+    
+    // Parse synopsis dari berbagai format:
+    // 1. String langsung: m['synopsis']
+    // 2. Object dengan paragraphs: m['synopsis']['paragraphs'][]
+    String? synopsis;
+    final synopsisVal = m['synopsis'];
+    if (synopsisVal is String) {
+      synopsis = synopsisVal.trim();
+    } else if (synopsisVal is Map) {
+      // Handle synopsis.paragraphs array
+      final paragraphs = synopsisVal['paragraphs'];
+      if (paragraphs is List && paragraphs.isNotEmpty) {
+        final paragraphTexts = paragraphs
+            .whereType<String>()
+            .where((p) => p.trim().isNotEmpty)
+            .toList();
+        if (paragraphTexts.isNotEmpty) {
+          synopsis = paragraphTexts.join('\n\n');
+          print('📝 Synopsis parsed dari ${paragraphTexts.length} paragraphs');
+        }
+      }
+    }
+    // Fallback ke deskripsi lain jika synopsis kosong
+    if (synopsis == null || synopsis.isEmpty) {
+      synopsis = getStr(['sinopsis', 'description', 'desc']);
+    }
 
     final genres = <String>[];
     for (final k in ['genres', 'genre', 'tags']) {
@@ -433,6 +458,12 @@ class EpisodeDetailDisplay {
 
     final direct = <DirectStream>[];
 
+    // 0) defaultStreamingUrl (API response terakhir)
+    final defaultStreamUrl = getStr(['defaultStreamingUrl']);
+    if (defaultStreamUrl != null) {
+      direct.add(DirectStream(label: 'Default Stream', url: defaultStreamUrl));
+    }
+
     // 1) stream_url (contoh payload)
     final streamUrl = getStr(['stream_url']);
     if (streamUrl != null) {
@@ -474,8 +505,61 @@ class EpisodeDetailDisplay {
       }
     }
 
-    // 3) download_urls (contoh payload)
-    // Filter: hanya ambil provider GoFile untuk resolusi 720p dan 1080p
+    // 3) download_urls
+    // Structure: { "downloadUrl": { "qualities": [ { "title": "360p", "size": "45.9 MB", "urls": [...] } ] } }
+    // Filter: Hanya tampilkan 720p quality (dari semua provider)
+    final dlData = m['downloadUrl'];
+    print('🔍 Download data: $dlData');
+    if (dlData is Map) {
+      final qualities = dlData['qualities'];
+      print('📊 Qualities: ${qualities?.length} items');
+      if (qualities is List) {
+        for (final quality in qualities) {
+          if (quality is Map) {
+            final qualityTitle = quality['title']?.toString() ?? '';
+            final size = quality['size']?.toString() ?? '';
+            final sizeStr = size.isNotEmpty ? ' — $size' : '';
+            
+            print('  ✓ Quality: $qualityTitle');
+            
+            // Filter: Hanya ambil "720p" quality
+            if (qualityTitle != '720p') {
+              print('    ⚠️ Skipped: Not 720p');
+              continue;
+            }
+            
+            final urls = quality['urls'];
+            print('    📥 URLs: ${urls is List ? urls.length : 0} providers');
+            
+            if (urls is List) {
+              for (final u in urls) {
+                if (u is Map) {
+                  final provider = u['title']?.toString() ?? '';
+                  final url = u['url']?.toString();
+                  
+                  print('      - Provider: $provider');
+                  
+                  if (url != null && url.trim().isNotEmpty) {
+                    final label = '720p$sizeStr — $provider';
+                    print('        ✅ Added: $label');
+                    direct.add(
+                      DirectStream(
+                        label: label,
+                        url: url.trim(),
+                        isDownload: true,
+                      ),
+                    );
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    print('📥 Total download streams added: ${direct.where((d) => d.isDownload).length}');
+    
+    // Fallback: legacy download_urls structure
     final dl = m['download_urls'];
     if (dl is Map) {
       dl.forEach((formatKey, listVal) {
@@ -517,9 +601,45 @@ class EpisodeDetailDisplay {
       });
     }
 
-    // 4) servers (kalau API pakai serverId)
+    // 4) servers (API structure: server.qualities[].serverList[])
     final servers = <ServerItem>[];
-    for (final listKey in ['servers', 'server', 'streamingServers', 'data']) {
+    
+    // Structure: { "server": { "qualities": [ { "title": "360p", "serverList": [...] } ] } }
+    final serverData = m['server'];
+    if (serverData is Map) {
+      final qualities = serverData['qualities'];
+      if (qualities is List) {
+        for (final quality in qualities) {
+          if (quality is Map) {
+            final qualityTitle = quality['title']?.toString() ?? '';
+            final serverList = quality['serverList'];
+            if (serverList is List) {
+              for (final srv in serverList) {
+                if (srv is Map) {
+                  String? id;
+                  for (final k in ['serverId', 'id', 'sid']) {
+                    final vv = srv[k];
+                    if (vv is String && vv.trim().isNotEmpty) {
+                      id = vv.trim();
+                      break;
+                    }
+                  }
+                  final srvName = srv['title']?.toString() ?? 'Server';
+                  final srvLabel = qualityTitle.isNotEmpty ? '$qualityTitle - $srvName' : srvName;
+                  
+                  if (id != null) {
+                    servers.add(ServerItem(serverId: id, name: srvLabel));
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    // Fallback: legacy structure untuk kompatibilitas
+    for (final listKey in ['servers', 'streamingServers']) {
       final v = m[listKey];
       if (v is List) {
         for (final it in v) {
@@ -559,15 +679,25 @@ class EpisodeDetailDisplay {
       }
     }
 
-    // 5) next / prev
+    // 5) next / prev episode
     String? nextSlug, prevSlug;
-    if (m['next_episode'] is Map) {
+    
+    // New API structure
+    if (m['nextEpisode'] is Map) {
+      final next = Map<String, dynamic>.from(m['nextEpisode']);
+      nextSlug = next['episodeId']?.toString();
+    }
+    if (m['prevEpisode'] is Map) {
+      final prev = Map<String, dynamic>.from(m['prevEpisode']);
+      prevSlug = prev['episodeId']?.toString();
+    }
+    
+    // Fallback: legacy structure
+    if (nextSlug == null && m['next_episode'] is Map) {
       nextSlug = getStr(['slug'], Map<String, dynamic>.from(m['next_episode']));
     }
-    if (m['previous_episode'] is Map) {
-      prevSlug = getStr([
-        'slug',
-      ], Map<String, dynamic>.from(m['previous_episode']));
+    if (prevSlug == null && m['previous_episode'] is Map) {
+      prevSlug = getStr(['slug'], Map<String, dynamic>.from(m['previous_episode']));
     }
 
     return EpisodeDetailDisplay(
@@ -592,4 +722,69 @@ class ServerItem {
   final String? serverId;
   final String? name;
   ServerItem({this.serverId, this.name});
+}
+
+/// Model untuk server dengan URL yang sudah di-resolve
+class ResolvedServer extends ServerItem {
+  final String? streamUrl;
+  final bool isEmbedable;
+  final String? embedHtml;
+  
+  ResolvedServer({
+    required String? serverId,
+    required String? name,
+    this.streamUrl,
+    this.isEmbedable = false,
+    this.embedHtml,
+  }) : super(serverId: serverId, name: name);
+  
+  /// Generate embed HTML untuk WebView
+  String? generateEmbed() {
+    if (streamUrl == null || streamUrl!.isEmpty) return null;
+    if (!isEmbedable) return null;
+    
+    return '''
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background-color: #000; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .container { width: 100%; height: 100%; position: relative; }
+        iframe { width: 100%; height: 100%; border: none; display: block; }
+        .error { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            flex-direction: column; 
+            height: 100%; 
+            color: #fff; 
+            gap: 16px; 
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <iframe 
+            src="$streamUrl"
+            allowfullscreen
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            loading="lazy"
+        ></iframe>
+    </div>
+</body>
+</html>
+''';
+  }
 }
