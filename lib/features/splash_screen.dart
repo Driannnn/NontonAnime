@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:sizer/sizer.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -58,7 +57,13 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     final isMobile = screenWidth < 600;
+    
+    // Calculate responsive sizes without sizer
+    final logoSize = isMobile ? screenWidth * 0.5 : screenWidth * 0.25;
+    final appNameFontSize = isMobile ? screenWidth * 0.09 : 28.0;
+    final taglineFontSize = isMobile ? screenWidth * 0.065 : 20.0;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -73,17 +78,18 @@ class _SplashScreenState extends State<SplashScreen>
               opacity: _fadeAnimation.value,
               child: Transform.scale(
                 scale: _scaleAnimation.value,
-                child: SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: 100.h),
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         // Logo - lebih besar di mobile
                         Image.asset(
                           'assets/logo.gif',
-                          width: isMobile ? 100.w : 40.w,
-                          height: isMobile ? 100.w : 40.w,
+                          width: logoSize,
+                          height: logoSize,
                           fit: BoxFit.contain,
                         ),
                         const SizedBox(height: 24),
@@ -92,7 +98,7 @@ class _SplashScreenState extends State<SplashScreen>
                         Text(
                           'ANIMO',
                           style: GoogleFonts.cherryBombOne(
-                            fontSize: isMobile ? 9.w : 5.5.sp,
+                            fontSize: appNameFontSize,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
                             letterSpacing: 1.5,
@@ -104,7 +110,7 @@ class _SplashScreenState extends State<SplashScreen>
                         Text(
                           'Enjoy Watching!',
                           style: GoogleFonts.cherryBombOne(
-                            fontSize: isMobile ? 6.5.w : 4.5.sp,
+                            fontSize: taglineFontSize,
                             color: Colors.grey.shade700,
                             letterSpacing: 1,
                           ),
